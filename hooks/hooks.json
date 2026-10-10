@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "progress-guard",
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}progress-guard.cjs\"",
+            "description": "Keeps Sessions/Progress.md append-only"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,242 @@
+/* learn-sessions.css: "Console" layout, "Ice" palette, for /learn tutor sessions.
+   Scoped to .session / .session-progress (set with cssclasses) and the Sessions/
+   folder, so atomic notes are unaffected. The markup it styles is defined in
+   skills/learn/SKILL.md in the learn-tutor repo (question header, chips, confidence checkboxes, result callouts).
+   To change palette, edit only the token blocks below. */
+
+/* ---------- Palette tokens: Ice ---------- */
+.theme-dark .session,
+.theme-dark .session-progress,
+.theme-dark .nav-files-container {
+  --s-page: #081018;
+  --s-muted: #7d93a8;
+  --s-faint: #37495b;
+  --s-line: #13202d;
+  --s-prompt: #7cc4ff;          /* tutor: section labels, question numbers, chips */
+  --s-prompt-rgb: 124, 196, 255;
+  --s-input: #c6f1ff;           /* me: answer labels, checked boxes */
+  --s-input-ink: #04121c;
+}
+.theme-light .session,
+.theme-light .session-progress,
+.theme-light .nav-files-container {
+  --s-page: #f4f8fc;
+  --s-muted: #5b6f84;
+  --s-faint: #a9b8c8;
+  --s-line: #dbe5ef;
+  --s-prompt: #1f6fb2;
+  --s-prompt-rgb: 31, 111, 178;
+  --s-input: #0b6e8a;
+  --s-input-ink: #ffffff;
+}
+
+/* ---------- Page ---------- */
+.session,
+.session-progress {
+  --background-primary: var(--s-page);
+  background-color: var(--s-page);
+  --checkbox-color: var(--s-input);
+  --checkbox-color-hover: var(--s-input);
+  --checkbox-marker-color: var(--s-input-ink);
+  --checkbox-border-color: var(--s-faint);
+  --checkbox-border-color-hover: var(--s-input);
+  --hr-color: var(--s-line);
+}
+
+/* ---------- Section labels: H4 without a ==Q== number (Plan, Batch, Step, Next session…) ---------- */
+.session h4:not(:has(mark)),
+.session .HyperMD-header-4:not(:has(.cm-highlight)) {
+  font-family: var(--font-monospace);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--s-prompt);
+  border-bottom: 1px solid rgba(var(--s-prompt-rgb), 0.22);
+  padding-bottom: 0.35em;
+}
+.session .HyperMD-header-4:not(:has(.cm-highlight)) .cm-header { font-size: inherit; color: inherit; }
+
+/* ---------- Question header: #### ==Q1== Concept `L3` `Source` ---------- */
+.session h4:has(mark),
+.session .HyperMD-header-4:has(.cm-highlight) {
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-normal);
+  border: 0;
+}
+.session h4:has(mark) .cm-header,
+.session .HyperMD-header-4:has(.cm-highlight) .cm-header { font-size: inherit; }
+
+/* the ==Q1== number */
+.session h4 mark,
+.session .HyperMD-header-4 .cm-highlight {
+  background: none;
+  color: var(--s-prompt);
+  font-family: var(--font-monospace);
+  font-size: 0.82em;
+  font-weight: 700;
+}
+.session h4 mark::before,
+.session .HyperMD-header-4 .cm-highlight:not(.cm-formatting)::before {
+  content: "▸ ";
+  color: var(--s-faint);
+}
+
+/* chips: `L3` `Simon §2.2` */
+.session h4 code,
+.session .HyperMD-header-4 .cm-inline-code {
+  background: none !important;
+  border: 1px solid rgba(var(--s-prompt-rgb), 0.45);
+  border-radius: 3px;
+  color: var(--s-prompt);
+  font-size: calc(var(--font-text-size) * 0.68) !important;
+  font-weight: 400;
+  padding: 0.05em 0.45em !important;
+  vertical-align: 0.12em;
+}
+/* second and later chips (source, "unverified") are muted */
+.session h4 code ~ code,
+.session .HyperMD-header-4 .cm-inline-code:not(.cm-formatting) ~ .cm-inline-code:not(.cm-formatting) {
+  border-color: var(--s-line);
+  color: var(--s-muted);
+}
+
+/* ---------- My input areas: H5 (Answer / Explain / Question) ---------- */
+.session h5,
+.session .HyperMD-header-5,
+.session .HyperMD-header-5 .cm-header {
+  font-family: var(--font-monospace) !important;
+  font-size: calc(var(--font-text-size) * 0.8) !important;
+  font-weight: 500 !important;
+  font-variant: normal !important;
+  letter-spacing: 0.02em !important;
+  text-transform: lowercase !important;
+  color: var(--s-input) !important;
+}
+.session h5::before,
+.session .HyperMD-header-5:not(.cm-active)::before { content: "› "; }
+
+/* ---------- Confidence: H6 + checkboxes ---------- */
+.session h6,
+.session .HyperMD-header-6,
+.session .HyperMD-header-6 .cm-header {
+  font-family: var(--font-monospace) !important;
+  font-size: calc(var(--font-text-size) * 0.72) !important;
+  font-weight: 500 !important;
+  font-variant: normal !important;
+  letter-spacing: 0.02em !important;
+  text-transform: lowercase !important;
+  color: var(--s-muted) !important;
+}
+
+/* reading view: the three options as one segmented control */
+.session .el-h6 + .el-ul > ul {
+  display: inline-flex;
+  padding: 0;
+  margin: 0.2em 0 0.4em;
+  border: 1px solid var(--s-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.session .el-h6 + .el-ul > ul > li {
+  list-style: none;
+  margin: 0;
+  padding: 0.25em 0.8em 0.25em 0.5em;
+  font-family: var(--font-monospace);
+  font-size: 0.72em;
+  color: var(--s-muted);
+  text-decoration: none;
+}
+.session .el-h6 + .el-ul > ul > li + li { border-left: 1px solid var(--s-line); }
+.session .el-h6 + .el-ul > ul > li.is-checked {
+  background: var(--s-input);
+  color: var(--s-input-ink);
+  text-decoration: none;
+}
+/* live preview: options stay stacked; the checked one is highlighted */
+.session .HyperMD-header-6 ~ .HyperMD-task-line[data-task="x"],
+.session .HyperMD-header-6 ~ .HyperMD-task-line[data-task="x"] * { color: var(--s-input) !important; }
+
+/* checked items: no strikethrough noise in sessions */
+.session .task-list-item.is-checked,
+.session .HyperMD-task-line[data-task="x"] { text-decoration: none; }
+
+/* ---------- Inline code outside headers (the metadata line) : muted, no box ---------- */
+.session p > code,
+.session .cm-line:not(.HyperMD-header) > .cm-inline-code {
+  background: none !important;
+  color: var(--s-muted);
+  font-size: calc(var(--font-text-size) * 0.75) !important;
+  padding: 0 !important;
+}
+
+/* separators between questions */
+.session hr { border-top: 1px solid var(--s-line); }
+
+/* ---------- Result callouts ---------- */
+.theme-dark .callout[data-callout="correct"]  { --callout-color: 114, 224, 168; }
+.theme-dark .callout[data-callout="partial"]  { --callout-color: 255, 211, 107; }
+.theme-dark .callout[data-callout="wrong"]    { --callout-color: 255, 123, 138; }
+.theme-dark .callout[data-callout="idk"]      { --callout-color: 125, 147, 168; }
+.theme-dark .callout[data-callout="feedback"] { --callout-color: 157, 180, 255; }
+.theme-dark .callout[data-callout="formula"]  { --callout-color: 124, 196, 255; }
+.theme-light .callout[data-callout="correct"]  { --callout-color: 35, 150, 95; }
+.theme-light .callout[data-callout="partial"]  { --callout-color: 176, 125, 0; }
+.theme-light .callout[data-callout="wrong"]    { --callout-color: 200, 50, 70; }
+.theme-light .callout[data-callout="idk"]      { --callout-color: 91, 111, 132; }
+.theme-light .callout[data-callout="feedback"] { --callout-color: 70, 95, 200; }
+.theme-light .callout[data-callout="formula"]  { --callout-color: 31, 111, 178; }
+.callout[data-callout="correct"]  { --callout-icon: lucide-check; }
+.callout[data-callout="partial"]  { --callout-icon: lucide-alert-triangle; }
+.callout[data-callout="wrong"]    { --callout-icon: lucide-x; }
+.callout[data-callout="idk"]      { --callout-icon: lucide-help-circle; }
+.callout[data-callout="feedback"] { --callout-icon: lucide-pencil; }
+.callout[data-callout="formula"]  { --callout-icon: lucide-sigma; }
+
+.session .callout:is([data-callout="correct"], [data-callout="partial"], [data-callout="wrong"], [data-callout="idk"], [data-callout="feedback"], [data-callout="formula"]) {
+  background-color: rgba(var(--callout-color), 0.08);
+  border: 0;
+  border-radius: 4px;
+  padding: 0.45em 0.8em;
+}
+.session .callout .callout-title {
+  font-family: var(--font-monospace);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.session .callout .callout-content { font-size: 0.95em; }
+
+/* ---------- Progress.md: a scannable log ---------- */
+.session-progress li {
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+}
+
+/* ---------- File explorer: mark the Sessions folder ---------- */
+.nav-folder-title[data-path="Sessions"],
+.nav-file-title[data-path^="Sessions/"] { color: var(--s-prompt); }
+
+/* ---------- Plan maps (Mermaid) ----------
+   Obsidian 1.13 draws Mermaid light and inverts it in dark mode
+   (.theme-dark .mermaid > svg { filter: invert(1) hue-rotate(180deg) … }).
+   The map's classDef colors are already dark-mode colors, so undo the
+   inversion in sessions and color the parts Mermaid leaves light. Also
+   shrink wide maps to the page instead of cropping them. */
+.theme-dark .session .mermaid > svg { filter: none; }
+.session .mermaid > svg { max-width: 100%; height: auto; }
+.theme-dark .session .mermaid .flowchart-link,
+.theme-dark .session .mermaid .edgePath .path { stroke: var(--s-muted) !important; }
+.theme-dark .session .mermaid marker path,
+.theme-dark .session .mermaid .arrowheadPath { fill: var(--s-muted) !important; stroke: var(--s-muted) !important; }
+.theme-dark .session .mermaid .cluster rect { fill: transparent !important; stroke: var(--s-faint) !important; }
+.theme-dark .session .mermaid .cluster-label,
+.theme-dark .session .mermaid .cluster-label span { color: var(--s-muted) !important; fill: var(--s-muted) !important; }
+.theme-dark .session .mermaid .edgeLabel,
+.theme-dark .session .mermaid .edgeLabel rect { background: transparent !important; fill: transparent !important; color: var(--s-muted); }
+.theme-dark .session .mermaid .node:not([class*="ready"]):not([class*="shaky"]):not([class*="untested"]):not([class*="known"]):not([class*="todo"]) rect.label-container { fill: var(--s-line) !important; stroke: var(--s-faint) !important; }
+.theme-dark .session .mermaid .node:not([class*="ready"]):not([class*="shaky"]):not([class*="untested"]):not([class*="known"]):not([class*="todo"]) .nodeLabel { color: var(--s-muted) !important; }

@@ -1,0 +1,8 @@
+description = "Tutor session: /learn <course or topic> [exam] [sections, goal or comment]"
+prompt = """
+Activate the `learn` skill (call `activate_skill` with name "learn") and follow it exactly to run a tutoring session, starting at its section 1.
+
+The learner's argument: {{args}}
+
+If the argument is empty, run the skill's `start` command with no name, show the learner their courses and recent sessions, and ask what they want to study.
+"""
