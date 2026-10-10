@@ -18,14 +18,14 @@ It is deliberately small: one skill (a shared core plus one file per mode), one 
 
 ## How a session runs
 
-1. **Start.** `learn.cjs start` reports whether the name is a course or a topic, the next exam, what was covered, any unfinished plan, and what's weak or stale.
+1. **Start.** `learn.py start` reports whether the name is a course or a topic, the next exam, what was covered, any unfinished plan, and what's weak or stale.
 2. **Review offer.** Weak or stale concepts, confident misses first.
 3. **Probe.** A binary search for the frontier (below).
 4. **Plan.** A Mermaid map plus checkboxes, approved before teaching.
 5. **Teach.** For each step: motivate → establish → connect → check, with an explain-back ("why does this step follow?").
 6. **Close.** A redrawn map, a *Next session* note, and *Suggestions* for the learner's notes.
 
-Results are appended to `Progress.md` after every graded batch, so stopping early loses nothing. While the learner answers, the tutor drafts and verifies the next items that don't depend on those answers, so there is little waiting after `next`.
+Results are appended to `Progress.md` after every graded batch, so stopping early loses nothing. While the learner answers, a background agent drafts and verifies the next items that don't depend on those answers, so there is little waiting after `next`.
 
 ### Finding the frontier
 
@@ -47,7 +47,7 @@ The tutor maps the sections in scope, probes briefly where they rest on earlier 
 
 ### Exam prep
 
-The first session for an exam **calibrates**: date, scope, format, and how much comes from practical work. Every file in the course's materials is read in full and every problem listed, checked mechanically (page counts, problem numbering), and saved as a **problem inventory** in the course profile. Topic weights are computed from it by source: exams ×2, homework ×1.5, worksheets ×1. Procedural handouts aren't counted, because a long manual says nothing about the exam. Question size and target levels come from the most exam-like items.
+The first session for an exam **calibrates**: date, scope, format, and how much comes from practical work. Every file in the course's materials is read in full (one subagent per file) and every problem listed, checked mechanically (page counts, problem numbering), and saved as a **problem inventory** in the course profile. Topic weights are computed from it by source: exams ×2, homework ×1.5, worksheets ×1. Procedural handouts aren't counted, because a long manual says nothing about the exam. Question size and target levels come from the most exam-like items.
 
 Batches go **breadth before depth**: untested high-weight topics first, at most two retests per batch. Retests come two batches after a miss, which lets them be prepared in advance and helps a correction stick. Each session ends with a **readiness review** written the way a tutor would rather than computed: each topic is *ready*, *shaky*, *not ready* or *untested*, with one line of evidence, plus an estimated score range. (A computed coverage percentage was tried first and dropped: its all-or-nothing rules reported 3% after a 66% mock exam.)
 
@@ -75,7 +75,7 @@ Before a batch is shown:
 2. The verifier gets **only the questions** and solves them independently. A disagreement means the question gets fixed or dropped before the learner sees it. It also flags questions where the likely wrong method gives the same answer, compound asks, and hints that give the answer away. It never opens `Held Out/`.
 3. After grading, the key and citation are revealed so the learner can check them.
 
-The verifier runs as a Gemini CLI subagent with read and web tools only (no shell, since subagents run without per-step confirmation). When subagents are off, `learn.cjs verify` runs the same prompt in a separate headless `gemini -p` process.
+The verifier is a Claude Code subagent (`agents/verifier.md`) with read, search, shell and web tools. It starts with a fresh context, which is what makes the check blind.
 
 ## Research basis
 
@@ -105,9 +105,8 @@ Sources without links are cited from memory and still need checking.
 
 ## Changing the tool
 
-- **Bookkeeping lives in `learn.cjs`; judgment stays with the model.** The script does only what a model gets wrong: validating and aggregating many Progress lines (best level, per-topic evidence, review status) and gathering session-start state. Everything else (reading answers, formatting, readiness) is left to the model. Script parsers of model-written markup proved brittle and were removed. If a *counting* rule changes (the stale threshold, review status), change `learn.cjs` and `SKILL.md` together, and run `node --test tests/learn.test.cjs`.
+- **Bookkeeping lives in `learn.py`; judgment stays with the model.** The script does only what a model gets wrong: validating and aggregating many Progress lines (best level, per-topic evidence, review status) and gathering session-start state. Everything else (reading answers, formatting, readiness) is left to the model. Script parsers of model-written markup proved brittle and were removed. If a *counting* rule changes (the stale threshold, review status), change `learn.py` and `SKILL.md` together, and run `python3 -m unittest discover tests`.
 - **Behavior:** edit `SKILL.md` for anything both modes share, `learning.md` or `exam.md` for one mode.
-- **The verifier's instructions exist twice** (`skills/learn/verifier.md` for the headless fallback, `agents/verifier.md` for the subagent). A test fails if they differ.
 - **What was deliberately left out**, and is worth revisiting only if a real problem shows up:
   - separate `/review` and `/exam` commands (a mock exam is just a request in a session)
   - a spaced-repetition scheduler such as FSRS
@@ -116,17 +115,15 @@ Sources without links are cited from memory and still need checking.
   - a database, or progress stored inside the notes
 - **Open settings to tune with use:** the stale threshold, the graduation count, and the turn signal (`next` vs. a checkbox in the file).
 
-## Differences from the Claude Code original
+## Where it came from
 
-This is a port of a Claude Code skill built for one Obsidian vault. What changed:
+The tutor began as a skill written for one person's Obsidian notes and STEM courses. This version keeps the method and drops the assumptions:
 
-| Original | Here |
+| First version | Here |
 |---|---|
-| One vault's layout (`Classes/`, a course index per course, materials in `~/Documents/School`) | Any folder. A course is anything with a profile; materials are found by folder name under `Materials/` or configured roots |
-| Notes follow one vault's template | Notes follow the workspace's own conventions if it states any; a learner with no notes folder writes the note in the session file |
+| One fixed folder layout for notes, courses and materials | Any folder. A course is anything with a profile; materials are found by folder name under `Materials/` or configured roots |
+| Notes follow one fixed template | Notes follow the workspace's own conventions if it states any; a learner with no notes folder writes the note in the session file |
 | Obsidian required | Obsidian recommended; any Markdown editor works |
-| Python script, shell one-liners (`printf >>`, `sed`, `find`) | One Node script (Gemini CLI already needs Node; works on Windows). `log` validates before appending |
-| Temp files in `/tmp` | `.learn/scratch/` inside the workspace, where Gemini CLI's file tools can reach |
-| Background agent prefetches the next batch | The tutor prefetches in the same turn, after handing over the batch (Gemini CLI has no background agents) |
-| One subagent per file for the inventory, in parallel | One file per pass, by a subagent if available, otherwise by the tutor |
+| Shell one-liners for the Progress file (`printf >>`, `sed`, `find`) | `learn.py log` validates before appending, and the other commands replace the rest, so it also works on Windows |
+| Temp files in `/tmp` | `.learn/scratch/` inside the workspace |
 | STEM examples and a "lab material" question | Subject-neutral wording, rubric-keyed open-ended questions, readings in the inventory |

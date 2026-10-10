@@ -1,0 +1,7 @@
+{
+  "name": "tutor",
+  "version": "0.2.0",
+  "description": "A tutor that finds where your knowledge stops and pushes it outward: /tutor:learn <course or topic>. Grounded, blind-verified questions in Markdown session files; you write your own notes.",
+  "author": { "name": "LiamI16" },
+  "repository": "https://github.com/LiamI16/learn-tutor"
+}

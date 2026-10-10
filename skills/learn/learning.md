@@ -17,9 +17,9 @@ Adapted from amosblomqvist/learn (`skills/teach/SKILL.md`), with grounding, the 
 ## Start
 
 1. **Scope.**
-   - **Course:** ask which chapters or sections (`ask_user`), suggesting the next ones in the materials' order after the profile's `#### Sections` (what earlier learning sessions covered). If the profile doesn't exist, create it with `#### Exams` (from the learner, may be empty), `#### Terminology`, `#### Answer style` and `#### Sections`; no topic table or inventory (that's exam prep).
-   - **Topic:** ask preference questions (no right answer) with `ask_user`: what the learner wants out of it (the conceptual story / derive or argue the key result / read a specific paper or text / background for a project), depth, and time budget. Interrogate a vague goal until it's concrete: "understand X" can mean ten different lessons.
-2. **Sources.** Course: the textbook or reading sections in scope (extract them, SKILL.md §7), the lecture slides or notes for them, and the course's homework for setups and notation. Topic: whatever is in its materials folder; otherwise textbooks, papers and reputable references found on the web (`google_web_search`, `web_fetch`), preferring primary and well-established sources. Also read the learner's notes on the concepts in scope (knowledge signals, SKILL.md §2).
+   - **Course:** ask which chapters or sections (`AskUserQuestion`), suggesting the next ones in the materials' order after the profile's `#### Sections` (what earlier learning sessions covered). If the profile doesn't exist, create it with `#### Exams` (from the learner, may be empty), `#### Terminology`, `#### Answer style` and `#### Sections`; no topic table or inventory (that's exam prep).
+   - **Topic:** ask preference questions (no right answer) with `AskUserQuestion`: what the learner wants out of it (the conceptual story / derive or argue the key result / read a specific paper or text / background for a project), depth, and time budget. Interrogate a vague goal until it's concrete: "understand X" can mean ten different lessons.
+2. **Sources.** Course: the textbook or reading sections in scope (extract them, SKILL.md §7), the lecture slides or notes for them, and the course's homework for setups and notation. Topic: whatever is in its materials folder; otherwise textbooks, papers and reputable references found on the web (WebSearch, WebFetch; the verifier can search too), preferring primary and well-established sources. Also read the learner's notes on the concepts in scope (knowledge signals, SKILL.md §2).
 3. **Map the subject before planning.** From the sources, list the section's results and what each one rests on. This is where the real unconditional truths come from, so you don't plan around a half-remembered version.
 
 ## Probe
@@ -51,7 +51,7 @@ For **every node**, foundations included, write one `#### Teach · <node>` block
 3. **Connect.** In the block's `**Connect.**` line (SKILL.md §5): which earlier nodes this one rests on, and what it makes possible next. When several facts now follow from one idea, say so: that's the click.
 4. **Check.** 1–2 graded questions (SKILL.md §6) that confirm the node landed, ideally at L3–L4 (derive or argue it again in a modified setup, find the edge case). Log them to Progress. A miss means the node isn't solid: fix it (SKILL.md §5, by kind of miss) before building on it.
 
-Write the teach block and its `Try` or check in one turn; the next node comes after `next`. Ground every block before writing it (SKILL.md §7), derivation steps included. **Prefetch:** after node k is written, draft and verify node k+1 (it rarely depends on k's answers; discard it if k's check shows a broken foundation). Retest a high-confidence miss after the next node, and again next session.
+Write the teach block and its `Try` or check in one turn; the next node comes after `next`. Ground every block before writing it (SKILL.md §7), derivation steps included. **Prefetch:** while the learner works on node k, the background agent drafts and verifies node k+1 (it rarely depends on k's answers; discard it if k's check shows a broken foundation). Retest a high-confidence miss after the next node, and again next session.
 
 ## Notes
 

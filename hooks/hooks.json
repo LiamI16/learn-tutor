@@ -1,14 +1,13 @@
 {
+  "description": "Keeps Sessions/Progress.md append-only",
   "hooks": {
-    "BeforeTool": [
+    "PreToolUse": [
       {
-        "matcher": "write_file|replace",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
-            "name": "progress-guard",
             "type": "command",
-            "command": "node \"${extensionPath}${/}hooks${/}progress-guard.cjs\"",
-            "description": "Keeps Sessions/Progress.md append-only"
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/progress_guard.py\" || python \"${CLAUDE_PLUGIN_ROOT}/hooks/progress_guard.py\""
           }
         ]
       }

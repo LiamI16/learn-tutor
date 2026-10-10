@@ -13,7 +13,7 @@ The goal is the next exam's score: find the frontier on every topic the exam can
 
 ## Problem inventory
 
-Never skim the materials. Each file gets its own complete pass, kept separate from the others: if a general-purpose subagent is available, give it one file per call; otherwise do the files yourself one at a time, saving each report to scratch before opening the next. For each file:
+Never skim the materials yourself. Spawn **one `general-purpose` subagent per file** in the materials folder (all in parallel), each told to:
 - read **every page** (text extraction for the whole file; page images only for figures). Get the page count first (`pdfinfo` when installed);
 - list **every problem and subpart** as `<file short name> <id> · <kind: homework / worksheet / practical / exam> · <topic> · <level L1–L5> · <size: subparts, estimated minutes> · <what a complete answer contains>`, e.g. `HW4 P1(b) · homework · Inverse Kinematics · L3 · 1 part, ~25 min · reduce to the two subproblems, name the points, no numeric angles`, or `PS2 Q3 · homework · Price Elasticity · L2 · 2 parts, ~10 min · compute from the table, say elastic or inelastic and why`;
 - end with `pages read: N of N` and the full list of problem ids found;
@@ -22,7 +22,7 @@ Never skim the materials. Each file gets its own complete pass, kept separate fr
 - for files under `Held Out/`: list only `<file short name> <id> · exam · <topic> · <level> · <size>`, **no problem text and no answer content**;
 - use the current topic table's names where a topic fits, so reports from different files agree.
 
-Save each report to `<scratch>/inv-<n>.txt` and check it: its `pages read` must equal the file's page count, and its problem ids must have no gaps. Redo any file that fails. Write the result into the profile under `#### Problem inventory`, starting with a manifest line per file in exactly this form: ``- `<path relative to the materials folder>` · <size, e.g. 12 pages> · <YYYY-MM-DD>``.
+Save each report to `<scratch>/inv-<n>.txt` and check it: its `pages read` must equal the file's page count, and its problem ids must have no gaps. Re-run any file that fails. Write the result into the profile under `#### Problem inventory`, starting with a manifest line per file in exactly this form: ``- `<path relative to the materials folder>` · <size, e.g. 12 pages> · <YYYY-MM-DD>``.
 
 ## Topic table
 
@@ -59,7 +59,7 @@ classDef untested fill:#0e1a26,stroke:#37495b,color:#9fb2c4
 
 ## Mock exam (on request)
 
-A closed-book batch in the examiner's style and format, weighted like the real exam. If the learner asks to take a held-out exam, copy its problems verbatim into the session file (no solutions), and grade against its solutions afterwards. It then stops being held out: ask the learner to move it out of `Held Out/` once graded. Write `Started: HH:MM · Time limit: N min` at the top; on `next`, note the elapsed time and grade. Mock exam answers are first attempts at full exam problems: the strongest readiness evidence. Before grading, get a confidence for each problem (from the file, or with `ask_user` if the learner took it on paper), always before revealing any result. Grade every subpart with point estimates, and log one Progress line per problem under its topic.
+A closed-book batch in the examiner's style and format, weighted like the real exam. If the learner asks to take a held-out exam, copy its problems verbatim into the session file (no solutions), and grade against its solutions afterwards. It then stops being held out: ask the learner to move it out of `Held Out/` once graded. Write `Started: HH:MM · Time limit: N min` at the top; on `next`, note the elapsed time and grade. Mock exam answers are first attempts at full exam problems: the strongest readiness evidence. Before grading, get a confidence for each problem (from the file, or with `AskUserQuestion` if the learner took it on paper), always before revealing any result. Grade every subpart with point estimates, and log one Progress line per problem under its topic.
 
 ## Readiness review (close)
 

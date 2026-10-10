@@ -1,0 +1,12 @@
+{
+  "name": "learn-tutor",
+  "description": "The /tutor:learn tutor for Claude Code.",
+  "owner": { "name": "LiamI16" },
+  "plugins": [
+    {
+      "name": "tutor",
+      "source": "./",
+      "description": "A tutor that finds where your knowledge stops and pushes it outward: /tutor:learn <course or topic>."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 ---
 name: learn
 description: Tutor that finds where the learner's knowledge stops and pushes it outward, working in Markdown session files. Use when the user runs /learn, or asks to be tutored, taught, quizzed, or prepared for an exam. `/learn <course>` is something studied over time with materials or exams (e.g. "BIO 101", "AP US History"); `/learn <topic>` is anything else (e.g. "the French Revolution", "Fourier transforms"). Default is learning mode (understand a chapter or topic as a connected whole, then write the note); exam prep is the mode for a course with an upcoming exam. Results go to Sessions/Progress.md.
+argument-hint: <course | topic> [exam] [sections, goal or comment]
 ---
 
 # /learn
@@ -34,19 +35,19 @@ A **course** is anything studied over time that has a profile in the sessions fo
 
 ## Workspace and paths
 
-The **workspace** is the folder Gemini CLI was started in. Everything is plain files:
+The **workspace** is the folder Claude Code was started in. Everything is plain files:
 
 - **Sessions folder:** `Sessions/` (or as `learn start` reports). Session files: `Sessions/YYYY-MM-DD <Course or Topic>[ <focus>].md`, one per wake cycle (a session past midnight keeps its start date; `learn start` prints today's date). Question numbers are never reused within a file: after removing a batch, keep counting up, so every `==Qn==` anchor stays unique.
 - **Progress:** `Sessions/Progress.md`, append-only, written only through `learn log` (§9).
-- **Course profile:** `Sessions/<Course>.md` (no date in the name, so it is never mistaken for a session file). It holds what the tutor has learned about the course: exams (date, scope, duration, allowed aids), terminology, answer style, what learning sessions covered, and for exam prep the topic table that defines scope. Sections: `#### Exams`, `#### Terminology`, `#### Answer style`, `#### Sections` (learning mode's record of what was covered, `learning.md`), and for exam prep `#### Topics` and `#### Problem inventory` (`exam.md`). Read it at every course session; create it at the first, with only the sections that mode needs; update it at close. Course facts go here, not in `save_memory`: the profile lives with the learner's files and they can edit it.
+- **Course profile:** `Sessions/<Course>.md` (no date in the name, so it is never mistaken for a session file). It holds what the tutor has learned about the course: exams (date, scope, duration, allowed aids), terminology, answer style, what learning sessions covered, and for exam prep the topic table that defines scope. Sections: `#### Exams`, `#### Terminology`, `#### Answer style`, `#### Sections` (learning mode's record of what was covered, `learning.md`), and for exam prep `#### Topics` and `#### Problem inventory` (`exam.md`). Read it at every course session; create it at the first, with only the sections that mode needs; update it at close. Course facts go here, not in Claude's memory: the profile lives with the learner's files and they can edit it.
 - **Materials:** a folder named like the course or topic under `Materials/` (or the roots in `.learn/config.json`; `learn start` reports the one it found): textbook, slides, homework, past exams, readings. Read-only.
 - **Held-out materials:** anything under a `Held Out/` subfolder of the materials folder (e.g. an untaken practice exam). In every mode: never quote, paraphrase or adapt its problems (no same setup, numbers or structure), never reveal its solutions, and never name or describe its contents to the learner. Exam prep uses it **only** to set topic weights and question style; questions on the same topics must use different setups. When the learner asks to take it, serve it verbatim as the mock exam (`exam.md`). Learning mode doesn't touch it.
-- **The learner's notes:** any other Markdown in the workspace. Find a concept's note with `glob` (`**/<Concept>.md`, outside the sessions folder). If the workspace has a `GEMINI.md` or a conventions file describing how notes are written, the learner's notes follow it, and so do your critiques. A learner may also keep no notes in the workspace at all (see `learning.md`, Notes).
+- **The learner's notes:** any other Markdown in the workspace. Find a concept's note with Glob (`**/<Concept>.md`, outside the sessions folder). If the workspace has a `CLAUDE.md` or a conventions file describing how notes are written, the learner's notes follow it, and so do your critiques. A learner may also keep no notes in the workspace at all (see `learning.md`, Notes).
 - **Scratch:** `.learn/scratch/<session file name>/`, created by `learn scratch`. Answer keys, text extracts, verifier briefs and prefetch drafts live here, never in the sessions folder.
 
 ## Tooling
 
-`learn` below means `node "<skill>/scripts/learn.cjs"`, where `<skill>` is this skill's folder (the absolute path shown when the skill was activated). Run it from the workspace. It does the bookkeeping a model gets wrong: validating and aggregating Progress lines under the evidence rules.
+`learn` below means `python3 "${CLAUDE_SKILL_DIR}/scripts/learn.py"` (`python` where there is no `python3`). Run it from the workspace. It does the bookkeeping a model gets wrong: validating and aggregating Progress lines under the evidence rules.
 
 | Command | Use it for |
 |---|---|
@@ -58,9 +59,8 @@ The **workspace** is the folder Gemini CLI was started in. Everything is plain f
 | `learn rename "<old>" "<new>"` | rename a concept in existing Progress lines (§9) |
 | `learn check` | close: validates Progress lines, and in a wiki-link workspace lists any link or tag in the sessions folder |
 | `learn scratch "<session file>"` / `learn clean "<session file>" [--keep]` | create and print the session's scratch folder / delete it (`--keep` leaves `keys.md` and `prefetch-*`) |
-| `learn verify "<brief file>"` | §7 fallback: runs the blind verifier in a separate headless Gemini process and prints its report |
 
-Other tools: ask preference and control questions with `ask_user` (1–4 questions per call; `choice` with 2–4 options, `text`, or `yesno`). Blind verification uses the `verifier` subagent (§7). A hook blocks `write_file` and `replace` on `Progress.md`; use `learn log`.
+Other tools: ask preference and control questions with `AskUserQuestion`. Blind verification uses the `verifier` subagent (§7). A hook blocks Write and Edit on `Progress.md`; use `learn log`.
 
 ## 1. Start
 
@@ -68,12 +68,12 @@ Run `learn start "<course or topic>"` first; the steps below act on its output. 
 
 **Reading the argument:** `<course or topic> [exam] [sections or goal] [comment]`, e.g. `/learn BIO 101 exam midterm 2 covers respiration and photosynthesis, I'm weakest on the electron transport chain`. The course is the longest leading part that matches a profile name (`BIO 101`), and only that part goes to `learn start`. `exam` picks exam prep. Anything after is the learner's comment: scope, goals, constraints, things they're struggling with. Treat it like an answer to the start questions (don't ask what it already answers), and record lasting facts (an exam date, its scope) in the profile.
 
-1. **Source.** Course or topic, as reported. For a **new** name: it's a course if the learner's message says so (an exam, a class code, a syllabus, a materials folder with that name); a topic if it's clearly a one-off; otherwise ask once with `ask_user`. A new course gets a profile (step 2), which is what makes it a course from then on.
+1. **Source.** Course or topic, as reported. For a **new** name: it's a course if the learner's message says so (an exam, a class code, a syllabus, a materials folder with that name); a topic if it's clearly a one-off; otherwise ask once with `AskUserQuestion`. A new course gets a profile (step 2), which is what makes it a course from then on.
 2. **Profile (course).** Read `Sessions/<Course>.md` if it exists. If there is no profile, no exam date recorded, or the last exam's date has passed, ask whether an exam is coming and when, and record the answer in `#### Exams`: a dated exam line, exactly `- **<Exam name>** · YYYY-MM-DD · <scope, duration, allowed aids>`, or `- No exam scheduled · asked YYYY-MM-DD`. Don't ask again while that line is under 14 days old (`learn start` says so).
-3. **Mode.** If the argument says `exam`, or an exam is within 21 days, ask with `ask_user`: exam prep (recommended when an exam is near) / learning. Otherwise learning. Read `learning.md` or `exam.md` now; run its start steps (scope, calibration, materials) after step 6.
+3. **Mode.** If the argument says `exam`, or an exam is within 21 days, ask with `AskUserQuestion`: exam prep (recommended when an exam is near) / learning. Otherwise learning. Read `learning.md` or `exam.md` now; run its start steps (scope, calibration, materials) after step 6.
 4. **History.** `learn history "<Course>"` (course) or `learn history "<Concept>"` for each concept on the map (topic, once the map exists).
 5. **Unfinished plan.** Check the most recent dated session file for this course or topic. If its plan has unchecked steps, offer to continue it. If it ends with questions the learner never answered (no answer and no result callout), remove them from that file: they were never graded or logged. Questions worth asking again go into today's file as new questions, from the kept prefetch (§10 step 6) if it's still there, otherwise re-drafted and re-verified. Once you've taken what you need from the previous session's scratch folder, `learn clean` it. In learning mode also check its `#### Notes to write`: any note that now exists gets critiqued first (`learning.md`).
-6. **Review offer.** If any concepts in scope are weak or stale (review status, §9), list them, high-confidence misses first, and ask with `ask_user`: review weak first / pick / new material. If there are none, say so in one line and continue.
+6. **Review offer.** If any concepts in scope are weak or stale (review status, §9), list them, high-confidence misses first, and ask with `AskUserQuestion`: review weak first / pick / new material. If there are none, say so in one line and continue.
 
 Then create today's session file from the skeleton (last section) and its scratch folder (`learn scratch`).
 
@@ -169,7 +169,7 @@ Header: ``#### ==Q<n>== <Concept> `<Level>` `<Source>` ``. Keep this exact shape
 **Rules.**
 - **Every ask is a visible subpart.** A question with more than one ask lists them as bold lettered subparts (**(a)**, **(b)**, …), each on its own line, never chained with "and" in one sentence. The answer area mirrors them. At most about 4 subparts; split anything bigger (exam prep also caps size by the exam's time budget, `exam.md`). Don't pad with trivial asks (restating the setup).
 - Prefer producing over recognizing: short answers, derivations, explanations. Multiple choice only for quick diagnostics, or when the course's exam is multiple choice (`exam.md`).
-- Multiple choice: options are bare claims with no reasoning; write the correct claim first, then make each wrong option by applying **one specific misconception** (keep a private note of which), and shuffle; don't highlight anything in one option only; always include "I don't know". Without math → `ask_user`, with confidence as a second question in the same call; then write the pick and confidence under that question's `##### Answer` in the file, verbatim. With math → options as checkboxes in the file under `##### Answer` (`- [ ] A. …`), one to tick.
+- Multiple choice: options are bare claims with no reasoning; write the correct claim first, then make each wrong option by applying **one specific misconception** (keep a private note of which), and shuffle; don't highlight anything in one option only; always include "I don't know". Without math → `AskUserQuestion`, with confidence as a second question in the same call; then write the pick and confidence under that question's `##### Answer` in the file, verbatim. With math → options as checkboxes in the file under `##### Answer` (`- [ ] A. …`), one to tick.
 - **Open-ended questions** (an essay point, an interpretation, an argument): the key is a rubric written before the learner sees the question: the points a full answer must make, each with its source. Grade against the rubric, not against your own preferred answer; a well-supported position the rubric didn't foresee is checked against the sources, not marked wrong.
 - Confidence is given before any reveal.
 - Every question cites its source (textbook section, lecture, homework, reading).
@@ -180,10 +180,8 @@ Header: ``#### ==Q<n>== <Concept> `<Level>` `<Source>` ``. Keep this exact shape
 ## 7. Grounding (before every batch, and before any teaching step, worked example or explain-back prompt)
 
 1. For each item, work out the answer (or rubric) and write down its source (section/page/equation, or URL). Keep keys out of the session file until grading: write them to `<scratch>/keys.md`.
-   - **Read long sources cheaply:** find the pages from the table of contents, then extract only the chapters in scope as text into scratch and reuse the extract for the rest of the session. Use `pdftotext -f <first page> -l <last page> "<book>.pdf" "<scratch>/<book>-chN.txt"` when it's installed. Without it, `read_file` reads a PDF directly but takes the whole file: fine for slides, homework and papers, costly for a textbook (then ask the learner for the chapter as its own PDF, or to install poppler). Read pages as images only for figures.
-2. For items involving numbers, formulas, derivations, dates, quotations, translations or other factual claims, verify **blind**: call the **`verifier`** subagent once for the whole batch or teaching step. Give it **only** the numbered questions or claims, source pointers (paths to the materials and to your text extracts) and the scratch folder — never your keys. Include explain-back prompts and the claims in worked examples and derivations. For each item, name the likely misconception being tested, so the verifier can check that the item discriminates.
-   - **If there is no `verifier` tool** (subagents are off): write the same brief to `<scratch>/verify-<n>.md` and run `learn verify "<scratch>/verify-<n>.md"`. It prints the same report from a separate process. If that fails too, the items are `unverified`; tell the learner once that turning on subagents (README) restores blind checking.
-
+   - **Read long sources cheaply:** find the pages from the table of contents, then extract only the chapters in scope as text into scratch and reuse the extract for the rest of the session. Use `pdftotext -f <first page> -l <last page> "<book>.pdf" "<scratch>/<book>-chN.txt"` when it's installed; without it, the Read tool's `pages` parameter reads a page range (at most 20 pages per call). Read pages as images only for figures.
+2. For items involving numbers, formulas, derivations, dates, quotations, translations or other factual claims, verify **blind**: call the **`verifier`** subagent (Agent tool; it is listed as `tutor:verifier` when installed as a plugin) once for the whole batch or teaching step. Give it **only** the numbered questions or claims, source pointers (paths to the materials and to your text extracts) and the scratch folder — never your keys. Include explain-back prompts and the claims in worked examples and derivations. For each item, name the likely misconception being tested, so the verifier can check that the item discriminates.
    Compare its answers to your keys:
    - agree → keep;
    - disagree → re-derive from the source; fix the key or the item, or drop it;
@@ -191,7 +189,7 @@ Header: ``#### ==Q<n>== <Concept> `<Level>` `<Source>` ``. Keep this exact shape
    - verifier reports an issue (ambiguous, false premise, wrong section, non-discriminating, compound ask, hint leaks answer) → fix or drop the item; an error it found in the learner's notes goes to Suggestions.
 3. Then write it to the file.
 
-**Prefetch (hide the wait).** The learner spends far longer answering than you spend preparing. So after you've written something, run `learn show` and told the learner it's ready, keep working in the same turn: draft and verify the next thing that doesn't depend on the learner's current answer, into `<scratch>/prefetch-<n>.md` (items, keys, sources, named misconceptions), never into the sessions folder. Then end your turn. After `next`: grade first, then take the prefetched items that still fit (drop any whose topic the learner just showed is weak at a lower level; a weak result usually calls for a retest or a lower-level probe instead), and write and verify **only** what depends on the answers just graded, usually 0–2 items in one short verifier pass. If the learner types `next` before the prefetch is done, grading comes first. What to prefetch is set by the mode.
+**Prefetch (hide the wait).** The learner spends far longer answering than you spend preparing. Right after writing something, launch **one background `general-purpose` agent** (Agent tool, run in the background; don't wait for it) to draft and verify the next thing that doesn't depend on the learner's current answer, writing only to `<scratch>/prefetch-<n>.md` (items, keys, sources, named misconceptions), never to the sessions folder. Tell it to report only in its own final message, so the report reaches you. Give it the plan, the profile if any, this file's §5–§7 and the mode file, and what's been asked so far. Then end your turn as usual. After `next`: grade first, then take the prefetched items that still fit (drop any whose topic the learner just showed is weak at a lower level; a weak result usually calls for a retest or a lower-level probe instead), and write and verify **only** what depends on the answers just graded, usually 0–2 items in one short verifier pass. If the prefetch isn't finished, wait for it rather than redo it. What to prefetch is set by the mode.
 
 ## 8. Grading (after `next`)
 
@@ -235,7 +233,7 @@ Read every answer from the session file, verbatim. An answer area holding only t
 3. Write `#### Next session`: one or two lines on where to resume (plan step, and which concepts to retest first).
 4. Write `#### Suggestions`: specific gaps or errors found in the learner's existing notes, and notes they might write (e.g. "Einstein Model.md never states its low-T limit"). Suggestions only — never edit notes.
 5. Run `learn check`: no malformed lines, and (wiki-link workspace) no links or tags in the sessions folder except `#` inside math or code. Fix any real hit in today's file or the profile.
-6. Scratch: when verified, unused prefetch items are worth keeping for the next session, run `learn clean "<session file>" --keep` and name them in Next session (a later session that finds them missing re-drafts and re-verifies). Otherwise `learn clean "<session file>"`.
+6. Scratch: wait for any prefetch agent still running to finish (it would recreate its file). When verified, unused prefetch items are worth keeping for the next session, run `learn clean "<session file>" --keep` and name them in Next session (a later session that finds them missing re-drafts and re-verifies). Otherwise `learn clean "<session file>"`.
 7. Terminal: a one-line summary, the mode's headline, and what the next session should start with. Anything longer than a line (exam prep's review paragraph, learning mode's notes list) belongs in the profile or session file, not only in the terminal: the terminal scrolls away, and the next session reads the files.
 
 ## Controls (terminal)

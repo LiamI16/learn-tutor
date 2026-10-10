@@ -1,11 +1,11 @@
 # learn-tutor
 
-A tutor for [Gemini CLI](https://github.com/google-gemini/gemini-cli). It finds exactly where your knowledge stops and pushes it outward, for any subject, in plain Markdown files you own.
+A tutor for [Claude Code](https://claude.com/claude-code). It finds exactly where your knowledge stops and pushes it outward, for any subject, in plain Markdown files you own.
 
 ```
-/learn BIO 101                    learn the next chapters of a course
-/learn BIO 101 exam               prepare for the course's next exam
-/learn the French Revolution      learn any topic
+/tutor:learn BIO 101                    learn the next chapters of a course
+/tutor:learn BIO 101 exam               prepare for the course's next exam
+/tutor:learn the French Revolution      learn any topic
 ```
 
 What makes it different from asking a chatbot to explain something:
@@ -20,25 +20,35 @@ Why it is built this way, and the research behind it: [DESIGN.md](DESIGN.md).
 
 ## Install
 
-Needs Gemini CLI (which brings Node.js, the only dependency).
+Needs Claude Code and Python 3 (already on most Macs and Linux machines; on Windows, install it from python.org).
+
+In Claude Code:
+
+```
+/plugin marketplace add LiamI16/learn-tutor
+/plugin install tutor@learn-tutor
+```
+
+Update later with `/plugin marketplace update learn-tutor`.
+
+<details>
+<summary>Prefer a plain <code>/learn</code> command? Install without the plugin system</summary>
+
+Copy the skill and the verifier into your Claude folder:
 
 ```bash
-gemini extensions install https://github.com/LiamI16/learn-tutor
+git clone https://github.com/LiamI16/learn-tutor
+mkdir -p ~/.claude/skills ~/.claude/agents
+cp -R learn-tutor/skills/learn ~/.claude/skills/learn
+cp learn-tutor/agents/verifier.md ~/.claude/agents/verifier.md
 ```
 
-Then turn on subagents, which the blind verifier uses. In `~/.gemini/settings.json`:
-
-```json
-{ "experimental": { "enableAgents": true } }
-```
-
-(Newer Gemini CLI versions may have this on already. Without it the tutor still verifies, by running the same checker in a separate background Gemini process, which is slower.)
-
-Update later with `gemini extensions update learn-tutor`.
+The command is then `/learn`. This skips the hook that keeps `Progress.md` append-only (the tutor is told to follow that rule either way).
+</details>
 
 ## Set up a study folder
 
-Pick one folder for everything you study and always start Gemini CLI from it:
+Pick one folder for everything you study and always start Claude Code from it:
 
 ```
 Study/
@@ -55,14 +65,14 @@ A good editor matters, because everything with math, tables or diagrams happens 
 
 ```bash
 cd ~/Documents/Study
-gemini --approval-mode auto_edit
+claude
 ```
 
-`auto_edit` lets the tutor write to the session file without asking each time. When it first runs its bookkeeping script (`node …/learn.cjs`), choose "allow always".
+Press Shift+Tab to switch to "accept edits", so the tutor can write to the session file without asking each time. When it first runs its bookkeeping script (`python3 …/learn.py`), choose "don't ask again".
 
 ## A session
 
-1. `/learn <course or topic>`. The tutor asks what's in scope (and, for a course, whether an exam is coming).
+1. `/tutor:learn <course or topic>`. The tutor asks what's in scope (and, for a course, whether an exam is coming).
 2. It opens a session file. **Answer there**, tick a confidence box *before* seeing any feedback, then type `next` in the terminal.
 
    ```markdown
@@ -82,7 +92,7 @@ gemini --approval-mode auto_edit
 
 **Learning mode** (default): a short probe to find your edge, then a small map of the section (a few foundations at the top, the main result at the bottom). One idea per turn: why we need it, you try to work it out (or it's shown, your choice), how it connects, then one or two graded checks. When a cluster of ideas is done, you write the note from memory and the tutor critiques it.
 
-**Exam prep** (`/learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
+**Exam prep** (`/tutor:learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
 
 **Held-out exams.** Put a practice exam you want to save in `Materials/<Course>/Held Out/`. The tutor uses it only to weight topics and match question style. It never shows or adapts its problems, until you ask to take it as a mock exam.
 
@@ -122,7 +132,7 @@ Optional `.learn/config.json` in the study folder:
 }
 ```
 
-- `materials`: folders searched for one named like the course or topic. Folders outside the study folder also need to be allowed in Gemini CLI (`gemini --include-directories ~/Documents/School`).
+- `materials`: folders searched for one named like the course or topic. Folders outside the study folder also need to be allowed in Claude Code (`claude --add-dir ~/Documents/School`).
 - `open`: how the session file is opened. `auto` (Obsidian if the folder is a vault, VS Code inside its terminal, else the system default), `system`, `none`, or a command such as `"code -g {file}:{line}"`.
 
 ### Obsidian extras
@@ -134,24 +144,24 @@ Optional `.learn/config.json` in the study folder:
 ## What's in this repo
 
 ```
-gemini-extension.json           extension manifest
-commands/learn.toml             the /learn command
+.claude-plugin/                 plugin and marketplace manifests
 skills/learn/SKILL.md           shared core: rules, probe, question format, grounding, grading, Progress, close
 skills/learn/learning.md        learning mode
 skills/learn/exam.md            exam prep mode
-skills/learn/verifier.md        the blind solver's instructions
-skills/learn/scripts/learn.cjs  bookkeeping: session-start state, Progress validation, review status
-agents/verifier.md              the blind solver as a subagent (same text; a test keeps them identical)
+skills/learn/scripts/learn.py   bookkeeping: session-start state, Progress validation, review status
+agents/verifier.md              the blind solver: gets the questions, never the answer keys
 hooks/                          keeps Progress.md append-only
 extras/obsidian/                optional theme
-tests/                          node --test tests/learn.test.cjs
+tests/                          python3 -m unittest discover tests
 ```
 
-The behavior is all in the three Markdown files under `skills/learn/`. To change how the tutor acts, edit those; see "Changing the tool" in [DESIGN.md](DESIGN.md). To develop locally: `gemini extensions link .`.
+The behavior is all in the three Markdown files under `skills/learn/`. To change how the tutor acts, edit those; see "Changing the tool" in [DESIGN.md](DESIGN.md). To develop locally: `claude --plugin-dir .`.
 
 ## Status
 
-Ported from a Claude Code skill that has been used for real course work. The bookkeeping script and hook are covered by tests, and the skill and subagent files load with Gemini CLI's own loaders. The Gemini port has not yet been through full live sessions, so expect to tune wording in `skills/learn/` after the first few.
+Generalized from a Claude Code skill that has been used for real course work. The bookkeeping script and hook are covered by tests and the plugin passes `claude plugin validate`. The generalized version has not yet been through full live sessions, so expect to tune wording in `skills/learn/` after the first few.
+
+A Gemini CLI version of the same tutor is on the [`gemini` branch](https://github.com/LiamI16/learn-tutor/tree/gemini).
 
 ## Credits
 
