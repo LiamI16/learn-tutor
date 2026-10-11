@@ -108,6 +108,54 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 | `explain more` | more depth on the current step |
 | anything else | a plain question |
 
+## How it works
+
+A session, start to close. Each session starts from what the previous ones recorded.
+
+```mermaid
+flowchart TD
+    cmd(["/tutor:learn BIO 101"]) --> start["<b>Start</b><br/>learn.py reads Progress.md and the course profile:<br/>next exam, unfinished plan, what is weak or stale"]
+    start --> review["<b>Review offer</b><br/>weak and stale concepts, confident misses first"]
+    review --> mode{"Mode"}
+
+    mode -- "learning (default)" --> l1["<b>Scope and sources</b><br/>pick the sections, map what each result rests on"]
+    l1 --> l2["<b>Probe</b><br/>one or two batches to find your edge"]
+    l2 --> l3["<b>Plan</b><br/>dependency graph: foundations at the top,<br/>main result at the bottom. You approve it"]
+    l3 --> l4["<b>Teach one idea per turn</b><br/>motivate, you try it, connect,<br/>then 1-2 graded checks"]
+    l4 --> l5["<b>Write</b><br/>you write the note from memory,<br/>the tutor critiques it"]
+    l5 -- "next cluster of ideas" --> l4
+
+    mode -- "exam prep" --> e1["<b>Calibrate</b><br/>exam date, scope, format"]
+    e1 --> e2["<b>Inventory</b><br/>one agent per file lists every problem,<br/>giving a weighted topic table"]
+    e2 --> e3["<b>Batches</b><br/>4-6 exam-sized questions, most points first.<br/>Misses are retested two batches later"]
+    e3 -- "next batch" --> e3
+    e3 --> e4["<b>Readiness review</b><br/>ready / shaky / not ready per topic,<br/>estimated score range"]
+
+    l5 --> close["<b>Close</b><br/>redrawn map, Next session, Suggestions for your notes"]
+    e4 --> close
+    close -.-> data[("Sessions/<br/>Progress.md, course profile")]
+    data -.-> start
+```
+
+Every question and teaching step goes through the same loop before and after you see it:
+
+```mermaid
+flowchart TD
+    draft["<b>Draft</b><br/>the tutor works out each answer from a source.<br/>Keys stay in .learn/scratch/, out of the session file"]
+    draft --> verify["<b>Blind check</b><br/>the verifier agent gets only the questions<br/>and solves them from the sources"]
+    verify --> agree{"Agrees with<br/>the key?"}
+    agree -- "no" --> fix["re-derive, then fix or drop the question"]
+    fix --> draft
+    agree -- "yes" --> write["<b>Session file</b><br/>the questions are written for you"]
+    write --> answer["<b>You</b><br/>answer in the file, tick a confidence,<br/>type next"]
+    answer --> grade["<b>Grade</b><br/>read from the file, graded against the key.<br/>Key and source are revealed"]
+    grade --> log["<b>Log</b><br/>learn.py validates each line, then appends it"]
+    log --> progress[("Progress.md<br/>append-only, guarded by a hook")]
+    grade -- "next turn" --> draft
+    write -.-> prefetch["<b>Prefetch</b><br/>while you answer, a background agent drafts<br/>and verifies the next items"]
+    prefetch -.-> draft
+```
+
 ## Files
 
 | File | What it is |
