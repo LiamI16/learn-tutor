@@ -3,9 +3,9 @@
 A tutor for [Claude Code](https://claude.com/claude-code). It finds exactly where your knowledge stops and pushes it outward, for any subject, in plain Markdown files you own.
 
 ```
-/tutor:learn BIO 101                    learn the next chapters of a course
-/tutor:learn BIO 101 exam               prepare for the course's next exam
-/tutor:learn the French Revolution      learn any topic
+/learn BIO 101                    learn the next chapters of a course
+/learn BIO 101 exam               prepare for the course's next exam
+/learn the French Revolution      learn any topic
 ```
 
 What makes it different from asking a chatbot to explain something:
@@ -29,10 +29,12 @@ In Claude Code:
 /plugin install tutor@learn-tutor
 ```
 
+The command is `/learn`. If another skill on your machine is also called `learn`, use the full name `/tutor:learn`.
+
 Update later with `/plugin marketplace update learn-tutor`.
 
 <details>
-<summary>Prefer a plain <code>/learn</code> command? Install without the plugin system</summary>
+<summary>Install without the plugin system</summary>
 
 Copy the skill and the verifier into your Claude folder:
 
@@ -43,7 +45,7 @@ cp -R learn-tutor/skills/learn ~/.claude/skills/learn
 cp learn-tutor/agents/verifier.md ~/.claude/agents/verifier.md
 ```
 
-The command is then `/learn`. This skips the hook that keeps `Progress.md` append-only (the tutor is told to follow that rule either way).
+The command is the same, `/learn`. This skips the hook that keeps `Progress.md` append-only (the tutor is told to follow that rule either way).
 </details>
 
 ## Set up a study folder
@@ -72,7 +74,7 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 
 ## A session
 
-1. `/tutor:learn <course or topic>`. The tutor asks what's in scope (and, for a course, whether an exam is coming).
+1. `/learn <course or topic>`. The tutor asks what's in scope (and, for a course, whether an exam is coming).
 2. It opens a session file. **Answer there**, tick a confidence box *before* seeing any feedback, then type `next` in the terminal.
 
    ```markdown
@@ -92,7 +94,7 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 
 **Learning mode** (default): a short probe to find your edge, then a small map of the section (a few foundations at the top, the main result at the bottom). One idea per turn: why we need it, you try to work it out (or it's shown, your choice), how it connects, then one or two graded checks. When a cluster of ideas is done, you write the note from memory and the tutor critiques it.
 
-**Exam prep** (`/tutor:learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
+**Exam prep** (`/learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
 
 **Held-out exams.** Put a practice exam you want to save in `Materials/<Course>/Held Out/`. The tutor uses it only to weight topics and match question style. It never shows or adapts its problems, until you ask to take it as a mock exam.
 
@@ -114,7 +116,7 @@ A session, start to close. Each session starts from what the previous ones recor
 
 ```mermaid
 flowchart TD
-    cmd(["/tutor:learn BIO 101"]) --> start["<b>Start</b><br/>learn.py reads Progress.md and the course profile:<br/>next exam, unfinished plan, what is weak or stale"]
+    cmd(["/learn BIO 101"]) --> start["<b>Start</b><br/>learn.py reads Progress.md and the course profile:<br/>next exam, unfinished plan, what is weak or stale"]
     start --> review["<b>Review offer</b><br/>weak and stale concepts, confident misses first"]
     review --> mode{"Mode"}
 
