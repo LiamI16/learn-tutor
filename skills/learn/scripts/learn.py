@@ -28,6 +28,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -243,9 +244,10 @@ def read_profile(course):
             sections.append(line[2:].strip())
         if in_topics and line.startswith("| ") and not line.startswith("| Topic"):
             cells = cells_of(line)
-            if len(cells) >= 3 and cells[1] in WEIGHT:
+            weight = cells[1].split()[0] if len(cells) >= 3 and cells[1] else ""  # "M (9.6%)" → "M"
+            if weight in WEIGHT:
                 m = re.match(r"L([1-5])", cells[2])
-                topics.append({"topic": cells[0], "weight": cells[1], "target": int(m.group(1)) if m else 1})
+                topics.append({"topic": cells[0], "weight": weight, "target": int(m.group(1)) if m else 1})
     exams = [{"name": m.group(1), "date": m.group(2)}
              for m in re.finditer(r"^- \*\*(.+?)\*\* · (\d{4}-\d{2}-\d{2})", text, re.M)]
     asked = re.findall(r"^- No exam scheduled · asked (\d{4}-\d{2}-\d{2})", text, re.M)
@@ -467,6 +469,13 @@ def cmd_overview():
         print(f"  {f}")
 
 
+def suggest(folder):
+    """Companion needs a source to work through; without materials, guided. The learner still picks (SKILL.md §1 step 3)."""
+    if folder and visible(folder.iterdir()):
+        return "companion (materials found; ask the learner)"
+    return "guided (no materials; ask the learner)"
+
+
 def cmd_start(arg):
     if not arg:
         return cmd_overview()
@@ -483,10 +492,11 @@ def cmd_start(arg):
             print("  → a course if the learner studies it over time with materials or exams (then create its profile); "
                   "otherwise a topic. Ask only if their message leaves it unclear (SKILL.md §1)")
             print(f"materials: {found or no_folder}")
-            print("suggested mode: learning")
+            print("suggested mode: " + suggest(folder))
             return
-        print(f"source: topic ('{arg}' has sessions but no course profile) · mode: learning")
+        print(f"source: topic ('{arg}' has sessions but no course profile)")
         print(f"materials: {found or no_folder}")
+        print("suggested mode: " + suggest(folder))
         print_last_session(arg)
         stems = {f[:-3] for f in files}
         rows, bad = read_progress()
@@ -504,7 +514,7 @@ def cmd_start(arg):
         print(f"next exam: none scheduled (asked {profile['no_exam_asked']}; don't ask again yet)")
     else:
         print("next exam: none recorded → ask whether one is coming (SKILL.md §1 step 2)")
-    print("suggested mode: " + (f"exam prep (exam within {EXAM_WINDOW} days; confirm)" if ex and days <= EXAM_WINDOW else "learning"))
+    print("suggested mode: " + (f"exam prep (exam within {EXAM_WINDOW} days; confirm)" if ex and days <= EXAM_WINDOW else suggest(folder)))
     print("sections covered: " + ("" if profile["sections"] else "none yet"))
     for sec in profile["sections"][-5:]:
         print(f"  {sec}")
@@ -558,7 +568,8 @@ def cmd_check():
 
 def run(cmd, shell=False):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=10, shell=shell)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           timeout=10, shell=shell)
         return r.returncode == 0, r.stdout + r.stderr
     except (OSError, subprocess.SubprocessError):
         return False, ""
@@ -572,19 +583,58 @@ def system_open(target):
     return run(["xdg-open", target])[0]
 
 
+def obsidian_cli():
+    """The Obsidian CLI binary, or None. On Windows only Obsidian.com is the CLI: Obsidian.exe just launches the app."""
+    if sys.platform == "win32":
+        dirs = [Path(os.environ[v]) / sub for v, sub in (("ProgramFiles", "Obsidian"), ("LOCALAPPDATA", "Programs/Obsidian"),
+                                                         ("LOCALAPPDATA", "Obsidian")) if os.environ.get(v)]
+        found = [shutil.which("Obsidian.com")] + [str(d / "Obsidian.com") for d in dirs]
+    else:
+        found = [OBSIDIAN_MAC, shutil.which("obsidian")]
+    return next((b for b in found if b and Path(b).exists()), None)
+
+
+def open_tabs(vault):
+    """Files open in the main area's tabs, from Obsidian's saved workspace (empty if unreadable)."""
+    def walk(node):
+        if node.get("type") == "leaf":
+            yield node.get("state", {}).get("state", {}).get("file")
+        for child in node.get("children", []):
+            yield from walk(child)
+    try:
+        return set(walk(json.loads(read(vault / ".obsidian" / "workspace.json")).get("main", {})))
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
 def open_obsidian(file, heading, vault):
     vault_path = file.relative_to(vault).as_posix()
-    # fixed script; inputs are JSON-quoted
+    # fixed script; inputs are JSON-quoted. Reuses a tab that already shows the file, else opens a new tab,
+    # so the learner's other tabs (a textbook, their notes) stay put.
     js = (f"const f=app.vault.getAbstractFileByPath({json.dumps(vault_path)});"
           "const hs=(app.metadataCache.getFileCache(f)||{}).headings||[];"
           f"const h=hs.filter(x=>x.heading.includes({json.dumps(heading)})).pop();"
-          "const line=h?h.position.start.line:0;app.workspace.getLeaf(false).openFile(f,{eState:{line:line}});'line '+line")
-    for binary in (OBSIDIAN_MAC, shutil.which("obsidian")):
-        if binary and Path(binary).exists():
-            ok, out = run([binary, "eval", f"code={js}"])
-            if ok and "line" in out:
+          "const line=h?h.position.start.line:0;"
+          "const leaf=app.workspace.getLeavesOfType('markdown').find(l=>l.view.file&&l.view.file.path===f.path)"
+          "||app.workspace.getLeaf('tab');"
+          "leaf.openFile(f,{eState:{line:line}});app.workspace.setActiveLeaf(leaf,{focus:true});'line '+line")
+    binary, opened = obsidian_cli(), False
+    # Retry: right after a write, Obsidian may not have indexed the new heading yet (it lands on line 0),
+    # and the CLI occasionally returns no output.
+    for attempt in range(4 if binary else 0):
+        if attempt:
+            time.sleep(1)
+        ok, out = run([binary, "eval", f"code={js}"])
+        if ok and "line" in out:
+            opened = True
+            if not heading or "line 0" not in out:
                 return "in Obsidian, scrolled to the heading"
-    if system_open(f"obsidian://open?path={quote(str(file), safe='')}"):
+    if opened:
+        return f"in Obsidian at the top: no heading containing {heading!r} was found; tell the learner which heading to go to"
+    if vault_path in open_tabs(vault):
+        return ("nowhere new: it is already open in an Obsidian tab, which reloads by itself; "
+                "tell the learner to switch to it and which heading to go to")
+    if system_open(f"obsidian://open?path={quote(str(file), safe='')}&paneType=tab"):
         return "in Obsidian at the top (turn on the Obsidian CLI in Settings → General → Advanced to scroll to the heading)"
     return None
 

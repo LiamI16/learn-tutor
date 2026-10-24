@@ -1,7 +1,7 @@
 ---
 name: learn
-description: Tutor that finds where the learner's knowledge stops and pushes it outward, working in Markdown session files. Use when the user runs /learn, or asks to be tutored, taught, quizzed, or prepared for an exam. `/learn <course>` is something studied over time with materials or exams (e.g. "BIO 101", "AP US History"); `/learn <topic>` is anything else (e.g. "the French Revolution", "Fourier transforms"). Default is learning mode (understand a chapter or topic as a connected whole, then write the note); exam prep is the mode for a course with an upcoming exam. Results go to Sessions/Progress.md.
-argument-hint: <course | topic> [exam] [sections, goal or comment]
+description: Tutor that finds where the learner's knowledge stops and pushes it outward, working in Markdown session files. Use when the user runs /learn, or asks to be tutored, taught, quizzed, or prepared for an exam. `/learn <course>` is something studied over time with materials or exams (e.g. "BIO 101", "AP US History"); `/learn <topic>` is anything else (e.g. "the French Revolution", "Fourier transforms"). The learner picks a mode at the start: companion (they work through a source themselves; the tutor answers when they're stuck and makes problems on request), guided (led through the material in stretches, then they write the note), or exam prep (a course with an upcoming exam). Results go to Sessions/Progress.md.
+argument-hint: <course | topic> [companion | guided | exam] [sections, goal or comment]
 ---
 
 # /learn
@@ -18,10 +18,11 @@ The argument names a **source**: a course or a topic. The **mode** is the purpos
 
 | Mode | For | Read |
 |---|---|---|
-| **Learning** (default) | understanding a course's chapters or a topic as a connected whole: why each result holds, how it could have been discovered, how it links to the rest. Ends with notes the learner writes. | `learning.md` |
+| **Companion** | the learner has a source and works through it themselves (reads, re-derives, checks the text). The tutor answers when a step won't go through, and makes problems only when asked. | `companion.md` |
+| **Guided** | being led through a course's chapters or a topic as a connected whole, in stretches with pause points: when there is no good source, the field is unfamiliar, or the learner wants to be walked through. Ends with notes the learner writes. | `learning.md` |
 | **Exam prep** (course only) | being ready for a specific exam: problem inventory, exam weights, probe batches, mocks, readiness review. | `exam.md` |
 
-A **course** is anything studied over time that has a profile in the sessions folder: a class, a certification, a textbook worked through. A **topic** is anything else and is always learning mode. Choose the mode at start (§1): exam prep when the learner says so (`/learn BIO 101 exam`) or when `learn start` reports an exam within 21 days and the learner confirms; learning otherwise. Read the mode's file (in this skill's folder) before going past §1. This file holds what both modes share.
+A **course** is anything studied over time that has a profile in the sessions folder: a class, a certification, a textbook worked through. A **topic** is anything else; exam prep is for courses only. **The learner picks the mode at the start of every session, with `AskUserQuestion`** (§1 step 3), unless the `/learn` line already names it (`companion`, `guided`, `exam`). Read the mode's file (in this skill's folder) before going past §1. This file holds what the modes share. The learner can change mode mid-session by naming it.
 
 ## Hard rules
 
@@ -30,7 +31,7 @@ A **course** is anything studied over time that has a profile in the sessions fo
 3. **The session file is the medium.** The terminal doesn't render math, tables or diagrams, and it scrolls away. Questions, explanations, feedback and the plan map go in the session file. The terminal carries controls and one-line summaries only.
 4. **Grounded answers.** Every graded question has a worked answer and a cited source *before* the learner sees it, and every teaching claim has a source. Checkable items are verified blind by a second agent (§7). No source → mark the question `unverified` (a header chip) or drop it. Never guess.
 5. **Grade only from the file.** Read the learner's answer from the session file. Never paraphrase or "helpfully" reinterpret it.
-6. **Take turns.** After writing a batch, a teaching step or a prompt, don't write to the session file again until the learner types `next` (or another control). Never write while they may be typing. One turn may carry several prompts when none depends on another's answer (e.g. the plan's approval and a probe batch, or a note critique and the next teaching step).
+6. **Take turns.** After writing a batch, a stretch, a teaching step or a prompt, don't write to the session file again until the learner types `next` (or another control). Never write while they may be typing. One turn may carry several prompts when none depends on another's answer (e.g. the plan's approval and a probe batch, or a note critique and the next teaching step).
 7. **Only direct answers count as evidence.** Anything inferred (a skipped prerequisite) steers the probe but never becomes a Progress line or a green map node. A correct answer whose written work visibly *applies* a prerequisite is direct evidence for that prerequisite on the map (e.g. a correct limit computed with L'Hôpital's rule shows differentiation; quoting the limit from memory shows nothing about it). It still logs one Progress line, under the concept the question tests.
 
 ## Workspace and paths
@@ -39,9 +40,9 @@ The **workspace** is the folder Claude Code was started in. Everything is plain 
 
 - **Sessions folder:** `Sessions/` (or as `learn start` reports). Session files: `Sessions/YYYY-MM-DD <Course or Topic>[ <focus>].md`, one per wake cycle (a session past midnight keeps its start date; `learn start` prints today's date). Question numbers are never reused within a file: after removing a batch, keep counting up, so every `==Qn==` anchor stays unique.
 - **Progress:** `Sessions/Progress.md`, append-only, written only through `learn log` (§9).
-- **Course profile:** `Sessions/<Course>.md` (no date in the name, so it is never mistaken for a session file). It holds what the tutor has learned about the course: exams (date, scope, duration, allowed aids), terminology, answer style, what learning sessions covered, and for exam prep the topic table that defines scope. Sections: `#### Exams`, `#### Terminology`, `#### Answer style`, `#### Sections` (learning mode's record of what was covered, `learning.md`), and for exam prep `#### Topics` and `#### Problem inventory` (`exam.md`). Read it at every course session; create it at the first, with only the sections that mode needs; update it at close. Course facts go here, not in Claude's memory: the profile lives with the learner's files and they can edit it.
+- **Course profile:** `Sessions/<Course>.md` (no date in the name, so it is never mistaken for a session file). It holds what the tutor has learned about the course: exams (date, scope, duration, allowed aids), terminology, answer style, what guided and companion sessions covered, and for exam prep the topic table that defines scope. Sections: `#### Exams`, `#### Terminology`, `#### Answer style`, `#### Sections` (the record of what was covered, `learning.md`), and for exam prep `#### Topics` and `#### Problem inventory` (`exam.md`). Read it at every course session; create it at the first, with only the sections that mode needs; update it at close. Course facts go here, not in Claude's memory: the profile lives with the learner's files and they can edit it.
 - **Materials:** a folder named like the course or topic under `Materials/` (or the roots in `.learn/config.json`; `learn start` reports the one it found): textbook, slides, homework, past exams, readings. Read-only.
-- **Held-out materials:** anything under a `Held Out/` subfolder of the materials folder (e.g. an untaken practice exam). In every mode: never quote, paraphrase or adapt its problems (no same setup, numbers or structure), never reveal its solutions, and never name or describe its contents to the learner. Exam prep uses it **only** to set topic weights and question style; questions on the same topics must use different setups. When the learner asks to take it, serve it verbatim as the mock exam (`exam.md`). Learning mode doesn't touch it.
+- **Held-out materials:** anything under a `Held Out/` subfolder of the materials folder (e.g. an untaken practice exam). In every mode: never quote, paraphrase or adapt its problems (no same setup, numbers or structure), never reveal its solutions, and never name or describe its contents to the learner. Exam prep uses it **only** to set topic weights and question style; questions on the same topics must use different setups. When the learner asks to take it, serve it verbatim as the mock exam (`exam.md`). Guided and companion modes don't touch it.
 - **The learner's notes:** any other Markdown in the workspace. Find a concept's note with Glob (`**/<Concept>.md`, outside the sessions folder). If the workspace has a `CLAUDE.md` or a conventions file describing how notes are written, the learner's notes follow it, and so do your critiques. A learner may also keep no notes in the workspace at all (see `learning.md`, Notes).
 - **Scratch:** `.learn/scratch/<session file name>/`, created by `learn scratch`. Answer keys, text extracts, verifier briefs and prefetch drafts live here, never in the sessions folder.
 
@@ -52,7 +53,7 @@ The **workspace** is the folder Claude Code was started in. Everything is plain 
 | Command | Use it for |
 |---|---|
 | `learn start "<course or topic>"` | §1. Today's date, whether the name is a course, a topic or new, and whether this is a wiki-link workspace. Course: next exam and suggested mode, sections covered so far, materials that are new or changed since the inventory, last session's unfinished plan, then `status` if the profile has a topic table. Topic: last session's plan and the review status of concepts tested there. With no name: the list of courses and recent sessions |
-| `learn show "<session file>" "<heading text>"` | after every write to the session file: opens it in the learner's editor at the last heading containing the text, e.g. `"==Q7=="`, `"Teach · Lemma 2.12"`, `"Write · Causes of the Revolution"`, or the first new question of a batch. It prints `file:line` and how it opened; if it couldn't open anything, give the learner that `file:line` |
+| `learn show "<session file>" "<heading text>"` | after every write to the session file: opens it in the learner's editor at the last heading containing the text, e.g. `"==Q7=="`, `"Stretch 2"`, `"Consolidation"`, `"Write · Causes of the Revolution"`, or the first new question of a batch. In Obsidian it reuses a tab that already shows the file (else opens a new tab, so the learner's other tabs stay put) and retries for a few seconds while Obsidian indexes a just-written heading. It prints `file:line` and how it opened; if it opened at the top or couldn't open anything, tell the learner which heading to go to |
 | `learn log '<line>' '<line>' …` | §9: validates every line, then appends them to Progress.md. If any line is malformed nothing is written; fix and log all of them again |
 | `learn history "<concept or course>"` | the Progress lines for one concept or one context. Never read the whole Progress file |
 | `learn status "<Course>" [--write]` | exam prep: per-topic evidence for the readiness review (best level, number graded, last date, recent results) and review status (weak / stale / graduated), counting Progress lines from any context for the profile's topic names. `--write` updates the profile's Best level column only |
@@ -66,13 +67,13 @@ Other tools: ask preference and control questions with `AskUserQuestion`. Blind 
 
 Run `learn start "<course or topic>"` first; the steps below act on its output. With an empty argument, run `learn start`, show the list, and ask what to study.
 
-**Reading the argument:** `<course or topic> [exam] [sections or goal] [comment]`, e.g. `/learn BIO 101 exam midterm 2 covers respiration and photosynthesis, I'm weakest on the electron transport chain`. The course is the longest leading part that matches a profile name (`BIO 101`), and only that part goes to `learn start`. `exam` picks exam prep. Anything after is the learner's comment: scope, goals, constraints, things they're struggling with. Treat it like an answer to the start questions (don't ask what it already answers), and record lasting facts (an exam date, its scope) in the profile.
+**Reading the argument:** `<course or topic> [companion | guided | exam] [sections or goal] [comment]`, e.g. `/learn BIO 101 exam midterm 2 covers respiration and photosynthesis, I'm weakest on the electron transport chain`. The course is the longest leading part that matches a profile name (`BIO 101`), and only that part goes to `learn start`. A mode word picks the mode. Anything after is the learner's comment: scope, goals, constraints, things they're struggling with. Treat it like an answer to the start questions (don't ask what it already answers), and record lasting facts (an exam date, its scope) in the profile.
 
 1. **Source.** Course or topic, as reported. For a **new** name: it's a course if the learner's message says so (an exam, a class code, a syllabus, a materials folder with that name); a topic if it's clearly a one-off; otherwise ask once with `AskUserQuestion`. A new course gets a profile (step 2), which is what makes it a course from then on.
 2. **Profile (course).** Read `Sessions/<Course>.md` if it exists. If there is no profile, no exam date recorded, or the last exam's date has passed, ask whether an exam is coming and when, and record the answer in `#### Exams`: a dated exam line, exactly `- **<Exam name>** · YYYY-MM-DD · <scope, duration, allowed aids>`, or `- No exam scheduled · asked YYYY-MM-DD`. Don't ask again while that line is under 14 days old (`learn start` says so).
-3. **Mode.** If the argument says `exam`, or an exam is within 21 days, ask with `AskUserQuestion`: exam prep (recommended when an exam is near) / learning. Otherwise learning. Read `learning.md` or `exam.md` now; run its start steps (scope, calibration, materials) after step 6.
+3. **Mode.** If the `/learn` line names a mode (`companion`, `guided`, `exam`), use it. Otherwise ask with one `AskUserQuestion` (header "Mode"): **Companion** ("I have a source and will work through it myself; answer when I'm stuck, problems when I ask"), **Guided** ("lead me through it in stretches"), and, for a course, **Exam prep**. Put first, marked recommended: exam prep when an exam is within 21 days; otherwise companion when a source for the topic is in the materials folder or was given in the line, and guided when there is none. Read `companion.md`, `learning.md` or `exam.md` now. Companion skips steps 5–6 below except as one-line offers (`companion.md`, Start); the other modes run their start steps (scope, calibration, materials) after step 6.
 4. **History.** `learn history "<Course>"` (course) or `learn history "<Concept>"` for each concept on the map (topic, once the map exists).
-5. **Unfinished plan.** Check the most recent dated session file for this course or topic. If its plan has unchecked steps, offer to continue it. If it ends with questions the learner never answered (no answer and no result callout), remove them from that file: they were never graded or logged. Questions worth asking again go into today's file as new questions, from the kept prefetch (§10 step 6) if it's still there, otherwise re-drafted and re-verified. Once you've taken what you need from the previous session's scratch folder, `learn clean` it. In learning mode also check its `#### Notes to write`: any note that now exists gets critiqued first (`learning.md`).
+5. **Unfinished plan.** Check the most recent dated session file for this course or topic. If its plan has unchecked steps, offer to continue it. If it ends with questions the learner never answered (no answer and no result callout), remove them from that file: they were never graded or logged. Questions worth asking again go into today's file as new questions, from the kept prefetch (§10 step 6) if it's still there, otherwise re-drafted and re-verified. Once you've taken what you need from the previous session's scratch folder, `learn clean` it. In guided mode also check its `#### Notes to write`: any note that now exists gets critiqued first (`learning.md`).
 6. **Review offer.** If any concepts in scope are weak or stale (review status, §9), list them, high-confidence misses first, and ask with `AskUserQuestion`: review weak first / pick / new material. If there are none, say so in one line and continue.
 
 Then create today's session file from the skeleton (last section) and its scratch folder (`learn scratch`).
@@ -109,7 +110,7 @@ Run the search in **batches** (one batch = one bisection step for every strand a
 - Classify every miss as **slip** (knew it, executed wrong), **gap** (never learned), or **misconception** (believes something false). If one answer shows several, record the most serious (misconception > gap > slip) and mention the others in the note. A single miss is one data point: probe around a likely misconception before concluding.
 - Probing is also pretesting: wrong answers here are expected and useful. Say so once.
 
-Each mode sets the probe's scope and size (`learning.md`, `exam.md`).
+Exam prep runs this search (`exam.md`). **Guided mode does not probe up front:** it asks a few ungraded opening questions and handles prerequisites inline (`learning.md`), and runs the search only when the learner asks for `probe`. The levels above still label every graded question.
 
 ## 4. Plan
 
@@ -117,7 +118,7 @@ Write a Mermaid map in the session file: starting points at top, goal at bottom,
 
 ## 5. Teach
 
-Every teaching step runs **motivate → establish → connect → check**, in the session file. `learning.md` makes this the main loop; exam prep uses it for misses.
+A focused teaching step for **one miss**: exam prep uses it for misses in a batch, guided mode for misses in consolidation, companion mode when the learner asks for one after problems. It runs **motivate → establish → connect → check**, in the session file. Guided mode's main loop is not this block but the stretch (`learning.md`), which follows the same standards: every step motivated, checked by an independent route, grounded, discriminating.
 
 **Format** (keep it):
 
@@ -177,11 +178,11 @@ Header: ``#### ==Q<n>== <Concept> `<Level>` `<Source>` ``. Keep this exact shape
 - Interleave confusable concepts ("which of these three mechanisms explains …?"), and use new setups with the same structure for near transfer. Don't claim far transfer. When you first interleave or space, say briefly why it feels harder than blocked practice but works better (Kornell & Bjork 2008).
 - **Discriminating.** Every question and explain-back prompt must give a *different* answer under the likely misconception than under the right idea. Before writing, name the likely wrong method and check what it would produce. Avoid cases that hide it: symmetric setups, special values where a wrong formula happens to give the right result, examples so famous the answer is remembered rather than reasoned. **Course style wins over discrimination:** never add an ask the course doesn't make just to make an item discriminate; choose a different setup instead. Worked examples need the same check, or they teach nothing.
 
-## 7. Grounding (before every batch, and before any teaching step, worked example or explain-back prompt)
+## 7. Grounding (before every batch, and before any stretch, teaching step, worked example or pause-point prompt)
 
 1. For each item, work out the answer (or rubric) and write down its source (section/page/equation, or URL). Keep keys out of the session file until grading: write them to `<scratch>/keys.md`.
    - **Read long sources cheaply:** find the pages from the table of contents, then extract only the chapters in scope as text into scratch and reuse the extract for the rest of the session. Use `pdftotext -f <first page> -l <last page> "<book>.pdf" "<scratch>/<book>-chN.txt"` when it's installed; without it, the Read tool's `pages` parameter reads a page range (at most 20 pages per call). Read pages as images only for figures.
-2. For items involving numbers, formulas, derivations, dates, quotations, translations or other factual claims, verify **blind**: call the **`verifier`** subagent (Agent tool; it is listed as `tutor:verifier` when installed as a plugin) once for the whole batch or teaching step. Give it **only** the numbered questions or claims, source pointers (paths to the materials and to your text extracts) and the scratch folder — never your keys. Include explain-back prompts and the claims in worked examples and derivations. For each item, name the likely misconception being tested, so the verifier can check that the item discriminates.
+2. For items involving numbers, formulas, derivations, dates, quotations, translations or other factual claims, verify **blind**: call the **`verifier`** subagent (Agent tool; it is listed as `tutor:verifier` when installed as a plugin) once for the whole batch, stretch or teaching step. Give it **only** the numbered questions or claims, source pointers (paths to the materials and to your text extracts) and the scratch folder — never your keys. Include pause-point and explain-back prompts and the claims in worked examples and derivations. For each item, name the likely misconception being tested, so the verifier can check that the item discriminates.
    Compare its answers to your keys:
    - agree → keep;
    - disagree → re-derive from the source; fix the key or the item, or drop it;
@@ -202,8 +203,8 @@ Read every answer from the session file, verbatim. An answer area holding only t
 > **Source:** Simon §2.2
 ```
 
-- Results: `correct`, `partial`, `wrong`, `idk` (blank or "I don't know" is `idk`, never `wrong`). **The callout type is the result** (`[!correct]-`, `[!partial]-`, `[!wrong]-`, `[!idk]-`), and the title repeats it, so the file reads correctly in any Markdown viewer (where callouts aren't supported it shows as a quote block). Explain-back, attempt and note critiques use `[!feedback]-`.
-- High-confidence misses: give the fullest feedback and schedule a retest after a delay (exam prep: two batches later; learning: after the next node), and again next session (hypercorrection).
+- Results: `correct`, `partial`, `wrong`, `idk` (blank or "I don't know" is `idk`, never `wrong`). **The callout type is the result** (`[!correct]-`, `[!partial]-`, `[!wrong]-`, `[!idk]-`), and the title repeats it, so the file reads correctly in any Markdown viewer (where callouts aren't supported it shows as a quote block). Explain-back, pause-point, attempt and note critiques use `[!feedback]-`. Two more callouts: `[!formula]` (Recall boxes and formula hints) and `[!reveal]-` (the folded continuation after a pause point, titled Continue or Compare, `learning.md`).
+- High-confidence misses: give the fullest feedback and schedule a retest after a delay (exam prep: two batches later; guided: at the next session's opening questions; companion: the next time the learner asks for problems), and again next session (hypercorrection).
 - A wrong multiple-choice pick: record the misconception that option encoded.
 - Grade strictly against the key and source, not against how close the learner seemed.
 - Terminal: one line, e.g. `Batch 1: 3 correct · 1 partial · 1 wrong (high confidence: Einstein Model)`.
@@ -220,7 +221,7 @@ Read every answer from the session file, verbatim. An answer area holding only t
 - confidence = high / med / low, or `none` if no box was ticked.
 - concept = the concept's stable name (§6); context = the course name or `general`. A transfer or bridge question is logged under the concept it newly tests, not under the concept it builds from. When `learn log` reports a *new concept name*, check it isn't a respelling of an existing one.
 - **note always starts with the question's level**, then `probe` or `retest` if any, then a colon (e.g. `L3 probe:`, `L2 retest:`, `L3:`). **Never use ` · ` inside a field**; it is the field separator, and every line must have exactly 7 fields. The next session's probe starts one level above the highest level answered correctly (§3); a miss at a higher level marks the frontier even when it's a retest.
-- Only graded questions are logged. Explain-backs, discovery attempts and note critiques are not.
+- Only graded questions are logged. Opening questions, pause points (Predict, Explain, Do), explain-backs and note critiques are not.
 - Label later questions on a concept already graded **this session**: `probe` for a binary-search step at a different level, `retest` for a repeat after feedback (e.g. the hypercorrection retest). Examples: `L2 probe: set up the budget line correctly`, `L4 retest: 2D case, took C ∝ T³ from E ∝ T³`.
 - **Two kinds of status; never mix them.** *Review status* (weak / stale / graduated, for the review offer) uses only a concept's first graded question in a session. *Readiness* (exam prep only) is the tutor's judgment at close (`exam.md`). The *frontier level* uses every line: the highest level answered correctly, and the lowest level missed above it.
 - **Weak:** the most recent session's first attempt was `wrong`, `partial` or `idk`. **Stale:** last tested more than 14 days ago; with a known exam date, more than ~30% of the days remaining until it. **Graduated:** first attempt correct in 3 different sessions → off the review list, but still eligible for mixed/interleaved batches until the exam. `learn` computes these.
@@ -229,16 +230,16 @@ Read every answer from the session file, verbatim. An answer area holding only t
 ## 10. Close
 
 1. Ensure all results are in Progress.md.
-2. Do the mode's close steps (`learning.md` or `exam.md`), then tick the plan checkboxes.
+2. Do the mode's close steps (`companion.md`, `learning.md` or `exam.md`), then tick the plan checkboxes.
 3. Write `#### Next session`: one or two lines on where to resume (plan step, and which concepts to retest first).
 4. Write `#### Suggestions`: specific gaps or errors found in the learner's existing notes, and notes they might write (e.g. "Einstein Model.md never states its low-T limit"). Suggestions only — never edit notes.
 5. Run `learn check`: no malformed lines, and (wiki-link workspace) no links or tags in the sessions folder except `#` inside math or code. Fix any real hit in today's file or the profile.
 6. Scratch: wait for any prefetch agent still running to finish (it would recreate its file). When verified, unused prefetch items are worth keeping for the next session, run `learn clean "<session file>" --keep` and name them in Next session (a later session that finds them missing re-drafts and re-verifies). Otherwise `learn clean "<session file>"`.
-7. Terminal: a one-line summary, the mode's headline, and what the next session should start with. Anything longer than a line (exam prep's review paragraph, learning mode's notes list) belongs in the profile or session file, not only in the terminal: the terminal scrolls away, and the next session reads the files.
+7. Terminal: a one-line summary, the mode's headline, and what the next session should start with. Anything longer than a line (exam prep's review paragraph, guided mode's notes list) belongs in the profile or session file, not only in the terminal: the terminal scrolls away, and the next session reads the files.
 
 ## Controls (terminal)
 
-`next` (grade / continue) · `skip` · `stop` (grade any filled-in answers, then close; questions left blank at `stop` are not logged) · `defer` (put the current note on Notes to write) · `explain more` · `narrate` / `let me try` (switch between being shown and attempting first) · plain-text questions. A question that needs math or a long answer goes under `##### Question` in the file, then `next`.
+`next` (grade / continue) · `skip` · `stop` (grade any filled-in answers, then close; questions left blank at `stop` are not logged) · `defer` (put the current note on Notes to write) · `explain more` · `narrate` / `let me try` (more narration, or more left to the learner: guided mode's dial, and in a Teach step whether the learner is shown the step or attempts it first) · `probe` (find where the learner stands on a topic, `learning.md`) · companion mode: `problems [n] [on <what>]`, `frame`, `skeleton`, `walk me through <section>`, `critique <Note>` (`companion.md`) · plain-text questions. A question that needs math or a long answer goes under `##### Question` in the file, then `next`.
 
 ## Session file skeleton
 
@@ -251,7 +252,7 @@ cssclasses:
 ---
 ## <Course or Topic>[ · <focus>]
 ---
-`YYYY-MM-DD · learning | exam prep · <course or topic> · <sections, goal or exam>`
+`YYYY-MM-DD · companion | guided | exam prep · <course or topic> · <sections, goal or exam>`
 
 #### Plan
 ```mermaid

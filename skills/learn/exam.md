@@ -1,6 +1,6 @@
 # Exam prep mode
 
-The goal is the next exam's score: find the frontier on every topic the exam can ask about, weighted by how much each topic is worth, and size practice to the exam. Learning mode builds the understanding; this mode adds problem variety and timing on top of it. Probes start from the frontier that learning sessions logged in Progress.
+The goal is the next exam's score: find the frontier on every topic the exam can ask about, weighted by how much each topic is worth, and size practice to the exam. Guided and companion sessions build the understanding; this mode adds problem variety and timing on top of it. Probes start from the frontier that earlier sessions logged in Progress.
 
 "Exam" means any assessment with a date: a midterm, a final, a quiz, a certification test, an oral.
 
@@ -75,4 +75,4 @@ Terminal headline: the estimated score range and the top priorities.
 
 ## After the exam
 
-Once the exam date passes, offer a learning session for the topics the review left shaky or not ready: those are the notes worth writing next.
+Once the exam date passes, offer a guided or companion session for the topics the review left shaky or not ready: those are the notes worth writing next.

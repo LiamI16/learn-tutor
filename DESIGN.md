@@ -1,6 +1,6 @@
 # Design
 
-How the `/learn` tutor works and why it is built this way. The behavior itself lives in `skills/learn/`: `SKILL.md` (shared core), `learning.md` and `exam.md` (the two modes). Those files are the source of truth; this document explains them.
+How the `/learn` tutor works and why it is built this way. The behavior itself lives in `skills/learn/`: `SKILL.md` (shared core), and `companion.md`, `learning.md` (guided) and `exam.md` (the three modes). Those files are the source of truth; this document explains them.
 
 ## Philosophy
 
@@ -9,7 +9,7 @@ The tutor exists to find exactly where the learner's knowledge stops (the *front
 1. **Notes record what you encountered. The tutor records what you can produce.** A note shows you've seen something, not that you know it. Only answered questions count as knowing.
 2. **Retrieval is the learning event.** Notes and materials are reference. Learning happens when you produce an answer and get feedback.
 3. **Grounded answers.** Every graded question has a worked answer and a cited source before you see it, and checkable questions are verified blind by a second agent. Wrong answers from a tutor get learned, so the tutor has to earn trust.
-4. **Understanding over memorizing.** Connected knowledge lasts; separate facts fade. Learning mode builds each subject from *unconditional truths* (facts you can accept with no caveats) and walks every result as "how could I have discovered this?", so the facts follow from a few ideas instead of being memorized.
+4. **Understanding over memorizing.** Connected knowledge lasts; separate facts fade. Guided mode builds each subject from *unconditional truths* (facts you can accept with no caveats) and walks every result as "how could I have discovered this?", so the facts follow from a few ideas instead of being memorized.
 5. **Two layers, never mixed.** Your notes are knowledge. `Sessions/` is data about you. The tutor never edits notes and never links the two; it connects them only by matching concept names.
 
 One test decides what the tutor may do for the learner: does it replace effort that builds understanding, or only the friction around it? Friction (finding the page, formatting, bookkeeping, scheduling a retest) is removed freely. Writing the explanation, choosing what connects to what, and finding your own mistakes are the learning, so the tutor never does them.
@@ -19,17 +19,16 @@ It is deliberately small: one skill (a shared core plus one file per mode), one 
 ## How a session runs
 
 1. **Start.** `learn.py start` reports whether the name is a course or a topic, the next exam, what was covered, any unfinished plan, and what's weak or stale.
-2. **Review offer.** Weak or stale concepts, confident misses first.
-3. **Probe.** A binary search for the frontier (below).
-4. **Plan.** A Mermaid map plus checkboxes, approved before teaching.
-5. **Teach.** For each step: motivate → establish → connect → check, with an explain-back ("why does this step follow?").
-6. **Close.** A redrawn map, a *Next session* note, and *Suggestions* for the learner's notes.
+2. **Mode.** The learner picks one every session: companion, guided, or (for a course) exam prep. The tutor recommends exam prep when an exam is within three weeks, otherwise companion when a source is on disk and guided when there is none.
+3. **Review offer.** Weak or stale concepts, confident misses first (in companion mode, a one-line offer).
+4. **The mode's loop** (below).
+5. **Close.** A *Next session* note, *Suggestions* for the learner's notes, and for guided and exam prep a redrawn map.
 
 Results are appended to `Progress.md` after every graded batch, so stopping early loses nothing. While the learner answers, a background agent drafts and verifies the next items that don't depend on those answers, so there is little waiting after `next`.
 
 ### Finding the frontier
 
-Each concept starts on a ladder: *unseen* → *aware* → *studied* → *tested*, from the learner's notes, what they say they've covered, and Progress. Questions have five levels: L1 recall, L2 apply, L3 explain (derive or justify), L4 extend (edge cases, modified setups), L5 transfer.
+Exam prep, and guided mode's `probe` control, search for the frontier directly. Each concept starts on a ladder: *unseen* → *aware* → *studied* → *tested*, from the learner's notes, what they say they've covered, and Progress. Questions have five levels: L1 recall, L2 apply, L3 explain (derive or justify), L4 extend (edge cases, modified setups), L5 transfer.
 
 The probe is a **binary search in batches**: each batch is one bisection step for every strand at once.
 - **Over difficulty:** a correct answer jumps up a level, a miss drops down. 2–3 rounds find the edge. The edge counts as found only when bracketed: something right below it, something missed above it.
@@ -41,9 +40,21 @@ Each miss is classified and taught accordingly:
 - **Gap:** never learned it. A worked example if it's far past the frontier, an attempt first if it's near.
 - **Misconception:** believed something false. Refutation first: state the belief, show what it predicts, show what contradicts it.
 
-### Learning mode
+### Companion mode
 
-The tutor maps the sections in scope, probes briefly where they rest on earlier material, then shows a small dependency graph (about 8–12 nodes, a few stress-tested roots): unconditional truths at the top, the main result at the bottom, grouped into the notes the learner will write. Teaching goes one node per turn. When a note's nodes are done, the learner writes that note from memory; the tutor critiques it against the sources (errors, missing steps, unjustified implications) but never writes or edits it. The session ends with a *Connect* prompt where the learner explains how the new material links to earlier sections.
+For a learner who has a good source and works through it themselves: reading, re-deriving each step, checking the text, then doing problems. That method is sound, and the tutor doesn't replace it; it removes the two frictions around it. When a step won't go through, the learner asks and the tutor answers that step only, grounded in the source, and says plainly when the source is wrong. Problems (finding good ones, checking them, bringing back the missed ones later) come only on request, aimed at the source's key moves in setups where the text's own case doesn't carry over, at the questions the learner asked, and at what Progress marks weak. The tutor may suggest a good moment for problems in one line, at most once per section.
+
+It was added after a guided session on a topic with a good textbook: re-narrating the book cost time and did not improve what the learner could produce afterwards, while their own questions and the graded problems on new setups were where the value was.
+
+### Guided mode
+
+The tutor maps the sections in scope and asks what the learner wants to be able to do afterwards (explain, derive, compute, choose). Instead of a probe it opens with 3–4 ungraded conceptual questions, then shows a small dependency graph (about 8–12 nodes, a few stress-tested roots) cut into **stretches**, and a short frame: the puzzle to be explained, what makes it hard, and the route as one question per stretch, so each stretch has a place to fit without the answers being given away.
+
+Teaching goes one stretch per turn: a continuous, textbook-style piece with every step motivated, prerequisites as short Recall boxes where they're used, and 2–4 pause points at the hinges only: *Predict* the next move, *Explain* why a step is allowed, or *Do* the step. Everything after a pause point is folded, so the learner answers, unfolds and reads on without a round trip to the tutor. Each stretch ends with a bridge: a task where the tools so far fall just short, which raises the next stretch's question. Pause points aren't graded and a miss never blocks; the tutor narrates more or hands over more in the next stretch (the dial). Wrong beliefs from the opening questions are each met by a pause point the learner works through, not by a correction stated in the text.
+
+After the last stretch comes **consolidation**: the graded questions, mixed by the learner's goal and logged to Progress. Then the learner writes the note from memory; the tutor critiques it against the sources (errors, missing steps, unjustified implications) but never writes or edits it. The session ends with a *Connect* prompt where the learner explains how the new material links to earlier sections.
+
+Stretches replaced an earlier loop of one idea per turn with graded checks after each. In a file-based session each check costs minutes, the up-front probe spent whole batches on prerequisites before reaching the subject, and stopping at every step broke up an argument the learner was trying to see whole.
 
 ### Exam prep
 
@@ -91,6 +102,10 @@ The verifier is a Claude Code subagent (`agents/verifier.md`) with read, search,
 | Self-explanation | g = 0.55 | [Bisra et al. 2018](https://link.springer.com/article/10.1007/s10648-018-9434-x) |
 | Productive failure | Problem first helps conceptual learning, g = 0.36 | [Sinha & Kapur 2021](https://journals.sagepub.com/doi/10.3102/00346543211019105) |
 | Expertise reversal | Worked examples help novices, and the benefit fades with expertise | Kalyuga et al. 2003 |
+| Self-explanation prompts in proofs | Help comprehension, but prompting at every step lowers the benefit | Hodds, Alcock & Inglis 2014 |
+| Faded worked examples | Anticipating the next step of a worked example helps | Renkl & Atkinson |
+| Questions inside a lecture | Reduce mind wandering and improve learning | Szpunar, Khan & Schacter 2013 |
+| Prequestions | Help, mostly for the content they ask about | Carpenter & Toftness 2017 |
 | Retrieval vs. concept mapping | Retrieval produced more learning | [Karpicke & Blunt 2011](https://www.science.org/doi/10.1126/science.1199327) |
 | Learning wrong information | Wrong multiple-choice options can be learned as facts | Roediger & Marsh 2005 |
 | Perceived difficulty | Interleaving and spacing feel less effective than they are | Kornell & Bjork 2008 |
@@ -106,7 +121,7 @@ Sources without links are cited from memory and still need checking.
 ## Changing the tool
 
 - **Bookkeeping lives in `learn.py`; judgment stays with the model.** The script does only what a model gets wrong: validating and aggregating many Progress lines (best level, per-topic evidence, review status) and gathering session-start state. Everything else (reading answers, formatting, readiness) is left to the model. Script parsers of model-written markup proved brittle and were removed. If a *counting* rule changes (the stale threshold, review status), change `learn.py` and `SKILL.md` together, and run `python3 -m unittest discover tests`.
-- **Behavior:** edit `SKILL.md` for anything both modes share, `learning.md` or `exam.md` for one mode.
+- **Behavior:** edit `SKILL.md` for anything the modes share, `companion.md`, `learning.md` or `exam.md` for one mode.
 - **What was deliberately left out**, and is worth revisiting only if a real problem shows up:
   - separate `/review` and `/exam` commands (a mock exam is just a request in a session)
   - a spaced-repetition scheduler such as FSRS

@@ -181,20 +181,23 @@
 .theme-dark .callout[data-callout="idk"]      { --callout-color: 125, 147, 168; }
 .theme-dark .callout[data-callout="feedback"] { --callout-color: 157, 180, 255; }
 .theme-dark .callout[data-callout="formula"]  { --callout-color: 124, 196, 255; }
+.theme-dark .callout[data-callout="reveal"]   { --callout-color: 125, 147, 168; }
 .theme-light .callout[data-callout="correct"]  { --callout-color: 35, 150, 95; }
 .theme-light .callout[data-callout="partial"]  { --callout-color: 176, 125, 0; }
 .theme-light .callout[data-callout="wrong"]    { --callout-color: 200, 50, 70; }
 .theme-light .callout[data-callout="idk"]      { --callout-color: 91, 111, 132; }
 .theme-light .callout[data-callout="feedback"] { --callout-color: 70, 95, 200; }
 .theme-light .callout[data-callout="formula"]  { --callout-color: 31, 111, 178; }
+.theme-light .callout[data-callout="reveal"]   { --callout-color: 91, 111, 132; }
 .callout[data-callout="correct"]  { --callout-icon: lucide-check; }
 .callout[data-callout="partial"]  { --callout-icon: lucide-alert-triangle; }
 .callout[data-callout="wrong"]    { --callout-icon: lucide-x; }
 .callout[data-callout="idk"]      { --callout-icon: lucide-help-circle; }
 .callout[data-callout="feedback"] { --callout-icon: lucide-pencil; }
 .callout[data-callout="formula"]  { --callout-icon: lucide-sigma; }
+.callout[data-callout="reveal"]   { --callout-icon: lucide-chevrons-down; }
 
-.session .callout:is([data-callout="correct"], [data-callout="partial"], [data-callout="wrong"], [data-callout="idk"], [data-callout="feedback"], [data-callout="formula"]) {
+.session .callout:is([data-callout="correct"], [data-callout="partial"], [data-callout="wrong"], [data-callout="idk"], [data-callout="feedback"], [data-callout="formula"], [data-callout="reveal"]) {
   background-color: rgba(var(--callout-color), 0.08);
   border: 0;
   border-radius: 4px;

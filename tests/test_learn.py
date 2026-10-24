@@ -29,7 +29,7 @@ cssclasses:
 | Topic | Weight | Target | Problem types | Best level | Readiness | Evidence |
 |---|---|---|---|---|---|---|
 | Glycolysis | H | L3 | net ATP accounting | none | untested | |
-| Krebs Cycle | M | L2 | inputs and outputs | none | untested | |
+| Krebs Cycle | M (9.6%) | L2 | inputs and outputs | none | untested | |
 
 #### Problem inventory
 - `HW1.pdf` · 3 pages · 2026-10-01
@@ -62,6 +62,7 @@ class LearnTests(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn("today: 2026-10-20", out)
         self.assertIn("source: NEW", out)
+        self.assertIn("suggested mode: guided", out)
         self.assertIn("wiki-link workspace: no", out)
         self.assertTrue((ws / "Sessions" / "Progress.md").exists())
 
@@ -113,6 +114,8 @@ class LearnTests(unittest.TestCase):
             "source: course",
             "next exam: Midterm 1 2026-10-30 (10 days)",
             "suggested mode: exam prep",
+            # a weight cell may carry its share, "M (9.6%)"
+            "Krebs Cycle                        M  L2",
             "Campbell §9.1 Glycolysis",
             "materials: Materials/Fall/BIO 101/",
             "new: HW2.pdf",
@@ -130,7 +133,7 @@ class LearnTests(unittest.TestCase):
         learn(ws, "status", "BIO 101", "--write")
         profile = (ws / "Sessions" / "BIO 101.md").read_text(encoding="utf-8")
         self.assertIn("| Glycolysis | H | L3 | net ATP accounting | L4 | untested |", profile)
-        self.assertIn("| Krebs Cycle | M | L2 | inputs and outputs | L2 (retest) | untested |", profile)
+        self.assertIn("| Krebs Cycle | M (9.6%) | L2 | inputs and outputs | L2 (retest) | untested |", profile)
         data = json.loads(learn(ws, "status", "BIO 101", "--json")[1])
         self.assertEqual(data["topics"][0]["graded"], 3)
         self.assertIn("BIO 101 · next exam: Midterm 1", learn(ws, "start")[1])
@@ -141,6 +144,7 @@ class LearnTests(unittest.TestCase):
         learn(ws, "log", line("2026-10-01", "Convolution", "partial", "low", "2026-10-01 Fourier transforms", "L3: x", "general"))
         out = learn(ws, "start", "Fourier transforms")[1]
         self.assertIn("source: topic", out)
+        self.assertIn("suggested mode: guided", out)
         self.assertIn("open: Convolution", out)
         self.assertIn("weak (worst first): Convolution (low)", out)
         self.assertIn("stale: Convolution", out)
@@ -176,7 +180,9 @@ class LearnTests(unittest.TestCase):
         ws, mats = workspace(), workspace()
         (mats / "CHEM 1A").mkdir()
         put(ws / ".learn" / "config.json", json.dumps({"sessions": "Tutor", "materials": [str(mats)]}))
+        put(mats / "CHEM 1A" / "book.pdf", "x")
         out = learn(ws, "start", "chem 1a")[1]
+        self.assertIn("suggested mode: companion", out)
         self.assertIn("sessions: Tutor/", out)
         self.assertRegex(out, r"materials: .*CHEM 1A/")
         self.assertTrue((ws / "Tutor" / "Progress.md").exists())
@@ -192,7 +198,7 @@ class LearnTests(unittest.TestCase):
         self.assertEqual(guard("", raw="not json"), 0)
 
     def test_skill_files_name_only_tools_that_exist_here(self):
-        text = "".join((REPO / "skills" / "learn" / f).read_text(encoding="utf-8") for f in ["SKILL.md", "learning.md", "exam.md"])
+        text = "".join((REPO / "skills" / "learn" / f).read_text(encoding="utf-8") for f in ["SKILL.md", "companion.md", "learning.md", "exam.md"])
         for stale in ["ask_user", "read_file", "write_file", "learn.cjs", "Gemini"]:
             self.assertNotIn(stale, text)
         for cmd in set(re.findall(r"`learn ([a-z]+)", text)):

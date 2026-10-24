@@ -3,16 +3,18 @@
 A tutor for [Claude Code](https://claude.com/claude-code). It finds exactly where your knowledge stops and pushes it outward, for any subject, in plain Markdown files you own.
 
 ```
-/learn BIO 101                    learn the next chapters of a course
+/learn BIO 101                    study the next chapters of a course
 /learn BIO 101 exam               prepare for the course's next exam
 /learn the French Revolution      learn any topic
+/learn BIO 101 companion          work through the chapter yourself, the tutor on call
 ```
 
 What makes it different from asking a chatbot to explain something:
 
 - **You produce, it grades.** Learning happens when you attempt an answer and get feedback. The tutor asks, you answer in a file, it grades against a key.
 - **Grounded.** Every graded question has a worked answer and a cited source before you see it, and a second agent that never sees the key solves it independently. Disagreements are fixed before the question reaches you.
-- **Understanding over memorizing.** Learning mode builds each subject from a few facts you can accept without caveats and walks every result as "how could I have discovered this?".
+- **Understanding over memorizing.** Guided mode builds each subject from a few facts you can accept without caveats and walks every result as "how could I have discovered this?".
+- **It stays out of your way when you have a good source.** Companion mode answers the step you're stuck on and makes problems only when you ask.
 - **You write your own notes.** The tutor critiques them against the sources. It never writes or edits them.
 - **It remembers what you can do**, not what you've read: one line per graded question in `Sessions/Progress.md`, used to pick up at your frontier next time and to bring back what's weak or stale.
 
@@ -74,7 +76,7 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 
 ## A session
 
-1. `/learn <course or topic>`. The tutor asks what's in scope (and, for a course, whether an exam is coming).
+1. `/learn <course or topic>`. You pick a mode (or name it in the line: `companion`, `guided`, `exam`), and the tutor asks what's in scope (and, for a course, whether an exam is coming).
 2. It opens a session file. **Answer there**, tick a confidence box *before* seeing any feedback, then type `next` in the terminal.
 
    ```markdown
@@ -90,9 +92,11 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
    - [ ] low
    ```
 3. Feedback appears under each answer with the key and its source, so you can check the tutor too.
-4. Results are logged after every batch, so stopping early loses nothing.
+4. Graded results are logged after every batch, so stopping early loses nothing.
 
-**Learning mode** (default): a short probe to find your edge, then a small map of the section (a few foundations at the top, the main result at the bottom). One idea per turn: why we need it, you try to work it out (or it's shown, your choice), how it connects, then one or two graded checks. When a cluster of ideas is done, you write the note from memory and the tutor critiques it.
+**Companion**, for when you have a source (a textbook chapter, a paper, a lecture) and want to work through it yourself. The tutor reads it first, then waits. When a step won't go through, ask: it answers that step only, grounded in the source, and says plainly if the source looks wrong. It never makes problems unless you ask; `problems` gets a graded set aimed at the source's key moves in setups where the text's own case doesn't carry over. Also on request: `frame` (a reading guide: the puzzle and one question per section), `walk me through <section>`, `skeleton` (write the argument's key moves closed-book and compare), `critique <note>`.
+
+**Guided**, for when there is no good source, the field is new to you, or you want to be walked through. A few ungraded opening questions, then a small map of the material cut into **stretches**. Each stretch is one continuous, motivated piece, like a good textbook section, with two to four pause points at the steps that matter: *Predict* the next move, *Explain* why a step is allowed, or *Do* it yourself. The text after each pause point is folded, so you answer, unfold, and read on at your own pace. The tutor narrates more or hands over more depending on how the pause points go. After the last stretch, a short graded **consolidation** set, then you write the note from memory and the tutor critiques it. Type `probe` instead to find out where you stand on a topic before deciding what to study.
 
 **Exam prep** (`/learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
 
@@ -105,9 +109,12 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 | `next` | grade / continue |
 | `skip` | skip the current item |
 | `stop` | grade what's filled in, then close the session |
-| `defer` | learning mode: write the current note later |
-| `narrate` / `let me try` | be shown each step, or attempt it first |
+| `defer` | guided: write the current note later |
+| `narrate` / `let me try` | guided: more narration, or more left to you |
 | `explain more` | more depth on the current step |
+| `probe` | find where you stand on a topic: a graded check ending in a list of what to review |
+| `problems [n] [on <what>]` | companion: a graded problem set |
+| `frame` · `skeleton` · `walk me through <section>` · `critique <note>` | companion: see above |
 | anything else | a plain question |
 
 ## How it works
@@ -117,17 +124,25 @@ A session, start to close. Each session starts from what the previous ones recor
 ```mermaid
 flowchart TD
     cmd(["/learn BIO 101"]) --> start["<b>Start</b><br/>learn.py reads Progress.md and the course profile:<br/>next exam, unfinished plan, what is weak or stale"]
-    start --> review["<b>Review offer</b><br/>weak and stale concepts,<br/>confident misses first"]
-    review -- "default" --> learning
-    review -- "exam is near, or you ask" --> exam
+    start --> mode{"<b>You pick a mode</b>"}
+    mode -- "I have a source" --> companion
+    mode -- "lead me through it" --> guided
+    mode -- "an exam is coming" --> exam
 
-    subgraph learning ["Learning mode"]
+    subgraph companion ["Companion"]
         direction LR
-        l1["<b>Scope</b><br/>pick the sections,<br/>map what each<br/>result rests on"] --> l2["<b>Probe</b><br/>one or two batches<br/>to find your edge"]
-        l2 --> l3["<b>Plan</b><br/>dependency graph,<br/>you approve it"]
-        l3 --> l4["<b>Teach</b><br/>one idea per turn,<br/>1-2 graded checks"]
-        l4 --> l5["<b>Write</b><br/>you write the note<br/>from memory, the<br/>tutor critiques it"]
-        l5 -- "next cluster" --> l4
+        c1["<b>Read</b><br/>the tutor reads your<br/>source, then waits"] --> c2["<b>You work through it</b><br/>ask when a step won't go<br/>through; the tutor answers<br/>that step, from the source"]
+        c2 -- "problems" --> c3["<b>Problems, on request</b><br/>graded, in setups where the<br/>text's own case doesn't<br/>carry over"]
+        c3 -- "back to the source" --> c2
+    end
+
+    subgraph guided ["Guided"]
+        direction LR
+        g1["<b>Opening questions</b><br/>3-4, ungraded: what<br/>you expect and believe"] --> g2["<b>Plan</b><br/>dependency graph cut<br/>into stretches.<br/>You approve it"]
+        g2 --> g3["<b>Stretch</b><br/>one per turn: a motivated<br/>argument with pause points,<br/>answers folded below them"]
+        g3 -- "next stretch" --> g3
+        g3 --> g4["<b>Consolidation</b><br/>graded questions,<br/>mixed by your goal"]
+        g4 --> g5["<b>Write</b><br/>you write the note<br/>from memory, the<br/>tutor critiques it"]
     end
 
     subgraph exam ["Exam prep"]
@@ -138,13 +153,15 @@ flowchart TD
         e3 --> e4["<b>Readiness review</b><br/>ready / shaky / not ready<br/>per topic, estimated<br/>score range"]
     end
 
-    learning --> close["<b>Close</b><br/>redrawn map, Next session, Suggestions for your notes"]
+    companion ~~~ guided ~~~ exam
+    companion --> close
+    guided --> close
     exam --> close
-    close -.-> data[("Sessions/<br/>Progress.md, course profile")]
+    close["<b>Close</b><br/>Next session, Suggestions for your notes"] -.-> data[("Sessions/<br/>Progress.md, course profile")]
     data -. "next session" .-> start
 ```
 
-Every question and teaching step goes through the same loop before and after you see it:
+Everything the tutor writes for you (questions, stretches, answers to your questions) is checked before you see it, and graded questions are logged after:
 
 ```mermaid
 flowchart TD
@@ -207,7 +224,8 @@ Optional `.learn/config.json` in the study folder:
 ```
 .claude-plugin/                 plugin and marketplace manifests
 skills/learn/SKILL.md           shared core: rules, probe, question format, grounding, grading, Progress, close
-skills/learn/learning.md        learning mode
+skills/learn/companion.md       companion mode
+skills/learn/learning.md        guided mode
 skills/learn/exam.md            exam prep mode
 skills/learn/scripts/learn.py   bookkeeping: session-start state, Progress validation, review status
 agents/verifier.md              the blind solver: gets the questions, never the answer keys
@@ -216,14 +234,14 @@ extras/obsidian/                optional theme
 tests/                          python3 -m unittest discover tests
 ```
 
-The behavior is all in the three Markdown files under `skills/learn/`. To change how the tutor acts, edit those; see "Changing the tool" in [DESIGN.md](DESIGN.md). To develop locally: `claude --plugin-dir .`.
+The behavior is all in the four Markdown files under `skills/learn/`. To change how the tutor acts, edit those; see "Changing the tool" in [DESIGN.md](DESIGN.md). To develop locally: `claude --plugin-dir .`.
 
 ## Status
 
 Generalized from a Claude Code skill that has been used for real course work. The bookkeeping script and hook are covered by tests and the plugin passes `claude plugin validate`. The generalized version has not yet been through full live sessions, so expect to tune wording in `skills/learn/` after the first few.
 
-A Gemini CLI version of the same tutor is on the [`gemini` branch](https://github.com/LiamI16/learn-tutor/tree/gemini).
+A Gemini CLI version is on the [`gemini` branch](https://github.com/LiamI16/learn-tutor/tree/gemini). It is the older two-mode tutor (learning and exam prep), without companion mode or stretches.
 
 ## Credits
 
-Learning mode's two principles and its one-idea-per-turn loop are adapted from [amosblomqvist/learn](https://github.com/amosblomqvist/learn).
+Guided mode's two principles are adapted from [amosblomqvist/learn](https://github.com/amosblomqvist/learn), whose one-idea-per-turn loop it started from.
