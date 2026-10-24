@@ -139,7 +139,7 @@ When a note's stretches are done (often right after consolidation), prompt for i
 
 ## Close (guided)
 
-1. **Connections.** One `##### Connect` prompt: ask the learner to explain how two or three pairs of nodes relate, at least one pair reaching back to an earlier section or note. Critique in `> [!feedback]- Connect`. Choosing the connections is the learner's work: you may suggest which pairs to explain, never the links themselves.
+1. **Connections.** One `##### Connect` prompt: ask the learner to explain how two or three pairs of nodes relate, at least one pair reaching back to an earlier section or note. Critique in `> [!feedback]- Connect`. Choosing the connections is the learner's work: you may suggest which pairs to explain, never the links themselves. **The Connect prompt is its own turn and is not optional:** write it (it may share a turn with the last note critique), end the turn, and critique the answer after `next`. Only then run steps 2–5. Don't close in the same turn as the prompt; the session closes early only on `stop`, and then the prompt stays open for next session (step 3).
 2. Redraw the graph in place under `#### Plan` (known / todo) and tick the plan.
 3. Course: add one line per section covered to the profile's `#### Sections` (create the heading if the profile lacks it): `- <book or source> §<n> <title> · <YYYY-MM-DD> · notes: <Note Name>, …`, marking each note `(to write)` or `(fix pending)` until it's done. If the learner stopped before consolidation or the Connect prompt, leave it open for next session and say so in Next session.
 4. Write `#### Notes to write` (anything deferred) before Next session.
