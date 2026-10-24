@@ -240,7 +240,7 @@ The behavior is all in the four Markdown files under `skills/learn/`. To change 
 
 Generalized from a Claude Code skill used for real course work, and kept in sync with it. The bookkeeping script and hook are covered by tests, and the plugin passes `claude plugin validate`. Companion and guided mode have each been run end to end on a test source with a simulated learner. Exam prep has only been used in the original version, not yet in this one.
 
-A Gemini CLI version is on the [`gemini` branch](https://github.com/LiamI16/learn-tutor/tree/gemini). It is the older two-mode tutor (learning and exam prep), without companion mode or stretches.
+An older Gemini CLI version (two modes, learning and exam prep, without companion mode or stretches) is archived at the [`archive/gemini` tag](https://github.com/LiamI16/learn-tutor/tree/archive/gemini). It is no longer maintained.
 
 ## Credits
 
