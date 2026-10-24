@@ -244,7 +244,7 @@ Read every answer from the session file, verbatim. An answer area holding only t
 
 ## Session file skeleton
 
-Keep the markup below exactly as shown (header shapes, callout types). The `cssclasses` property is used by the optional Obsidian theme and is harmless elsewhere.
+Keep the markup below exactly as shown (header shapes, callout types). The body shown is exam prep's; guided mode's body starts with `#### Opening questions` and companion's with `#### Questions` (their mode files). The `cssclasses` property is used by the optional Obsidian theme and is harmless elsewhere.
 
 ~~~markdown
 ---
@@ -262,7 +262,7 @@ cssclasses:
 - [ ] step 1
 - [ ] step 2
 
-#### Batch 1 · Probe        ← exam prep; guided starts with Opening questions, companion with Questions (their mode files)
+#### Batch 1 · Probe
 ---
 #### ==Q1== <Concept> `L3` `<Source>`
 ...

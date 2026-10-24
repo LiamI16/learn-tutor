@@ -1,6 +1,6 @@
 {
   "name": "tutor",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A tutor that finds where your knowledge stops and pushes it outward: /learn <course or topic>. Three modes: companion (work through a source with the tutor on call), guided (led through in stretches) and exam prep. Grounded, blind-verified questions in Markdown session files; you write your own notes.",
   "author": { "name": "LiamI16" },
   "repository": "https://github.com/LiamI16/learn-tutor"
