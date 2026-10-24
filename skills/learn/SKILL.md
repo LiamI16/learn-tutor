@@ -28,7 +28,7 @@ A **course** is anything studied over time that has a profile in the sessions fo
 
 1. **Never create or edit the learner's notes or materials.** Write only inside the sessions folder and the scratch folder. The learner writes their notes; you critique them in the session file. Gaps in existing notes go in the session's Suggestions section.
 2. **Sessions are data about the learner, not knowledge. Keep them out of the knowledge graph.** Name concepts in plain text. When `learn start` reports a wiki-link workspace (Obsidian), write no `[[` and no `#tags` anywhere in the sessions folder.
-3. **The session file is the medium.** The terminal doesn't render math, tables or diagrams, and it scrolls away. Questions, explanations, feedback and the plan map go in the session file. The terminal carries controls and one-line summaries only.
+3. **The session file is the medium.** The terminal doesn't render math, tables or diagrams, and it scrolls away. Questions, explanations, feedback and the plan map go in the session file. The terminal carries controls, one-line summaries, and short plain-text answers to the learner's questions (no math, tables or diagrams; companion mode answers most questions there).
 4. **Grounded answers.** Every graded question has a worked answer and a cited source *before* the learner sees it, and every teaching claim has a source. Checkable items are verified blind by a second agent (§7). No source → mark the question `unverified` (a header chip) or drop it. Never guess.
 5. **Grade only from the file.** Read the learner's answer from the session file. Never paraphrase or "helpfully" reinterpret it.
 6. **Take turns.** After writing a batch, a stretch, a teaching step or a prompt, don't write to the session file again until the learner types `next` (or another control). Never write while they may be typing. One turn may carry several prompts when none depends on another's answer (e.g. the plan's approval and a probe batch, or a note critique and the next teaching step).
@@ -191,11 +191,11 @@ Header: ``#### ==Q<n>== <Concept> `<Level>` `<Source>` ``. Keep this exact shape
    - verifier reports an issue (ambiguous, false premise, wrong section, non-discriminating, compound ask, hint leaks answer) → fix or drop the item; an error it found in the learner's notes goes to Suggestions.
 3. Then write it to the file.
 
-**Prefetch (hide the wait).** The learner spends far longer answering than you spend preparing. Right after writing something, launch **one background `general-purpose` agent** (Agent tool, run in the background; don't wait for it) to draft and verify the next thing that doesn't depend on the learner's current answer, writing only to `<scratch>/prefetch-<n>.md` (items, keys, sources, named misconceptions), never to the sessions folder. Tell it to report only in its own final message, so the report reaches you. Give it the plan, the profile if any, this file's §5–§7 and the mode file, and what's been asked so far. Then end your turn as usual. After `next`: grade first, then take the prefetched items that still fit (drop any whose topic the learner just showed is weak at a lower level; a weak result usually calls for a retest or a lower-level probe instead), and write and verify **only** what depends on the answers just graded, usually 0–2 items in one short verifier pass. If the prefetch isn't finished, wait for it rather than redo it. What to prefetch is set by the mode.
+**Prefetch (hide the wait).** The learner spends far longer answering than you spend preparing. Right after writing something, launch **one background `general-purpose` agent** (Agent tool, run in the background; don't wait for it) to draft and verify the next thing that doesn't depend on the learner's current answer, writing only to `<scratch>/prefetch-<n>.md` (items, keys, sources, named misconceptions), never to the sessions folder. Tell it to report only in its own final message, so the report reaches you. Its final message is a short receipt, not the content: at most about five lines naming the file, the items drafted, and anything the verifier disputed and how it was fixed or dropped. The items, keys and sources stay in the file; read the file when you use them, so rejected drafts never enter your context. Give it the plan, the profile if any, this file's §5–§7 and the mode file, and what's been asked so far. Then end your turn as usual. After `next`: grade first, then take the prefetched items that still fit (drop any whose topic the learner just showed is weak at a lower level; a weak result usually calls for a retest or a lower-level probe instead), and write and verify **only** what depends on the answers just graded, usually 0–2 items in one short verifier pass. If the prefetch isn't finished, wait for it rather than redo it. What to prefetch is set by the mode.
 
 ## 8. Grading (after `next`)
 
-Read every answer from the session file, verbatim. An answer area holding only the pre-filled subpart labels counts as blank (`idk`). Confidence is the ticked box (`- [x] med`); none ticked → record confidence `none`; several ticked → use the lowest. For each question, insert directly below its confidence checkboxes:
+Read every answer from the session file, verbatim. An answer area holding only the pre-filled subpart labels counts as blank (`idk`). Confidence is the ticked box (`- [x] med`); none ticked → record confidence `none`; several ticked → use the lowest. For each question, insert directly below its confidence checkboxes (below its `Minutes:` line in exam prep):
 
 ```markdown
 > [!partial]- Q3 · partial
@@ -204,7 +204,7 @@ Read every answer from the session file, verbatim. An answer area holding only t
 > **Source:** Simon §2.2
 ```
 
-- Results: `correct`, `partial`, `wrong`, `idk` (blank or "I don't know" is `idk`, never `wrong`). **The callout type is the result** (`[!correct]-`, `[!partial]-`, `[!wrong]-`, `[!idk]-`), and the title repeats it, so the file reads correctly in any Markdown viewer (where callouts aren't supported it shows as a quote block). Explain-back, pause-point, attempt and note critiques use `[!feedback]-`. Two more callouts: `[!formula]` (Recall boxes and formula hints) and `[!reveal]-` (the folded continuation after a pause point, titled Continue or Compare, `learning.md`).
+- Results: `correct`, `partial`, `wrong`, `idk` (blank or "I don't know" is `idk`, never `wrong`). **The callout type is the result** (`[!correct]-`, `[!partial]-`, `[!wrong]-`, `[!idk]-`), and the title repeats it, so the file reads correctly in any Markdown viewer (where callouts aren't supported it shows as a quote block). Explain-back, attempt and note critiques use `[!feedback]-` (folded). Guided mode's one feedback callout per stretch is the exception: `[!feedback]`, expanded, so it isn't scrolled past (`learning.md`). Two more callouts: `[!formula]` (Recall boxes and formula hints) and `[!reveal]-` (the folded continuation after a pause point, titled Continue or Compare, `learning.md`).
 - High-confidence misses: give the fullest feedback and schedule a retest after a delay (exam prep: two batches later; guided: at the next session's opening questions; companion: the next time the learner asks for problems), and again next session (hypercorrection).
 - A wrong multiple-choice pick: record the misconception that option encoded.
 - Grade strictly against the key and source, not against how close the learner seemed.
@@ -262,7 +262,7 @@ cssclasses:
 - [ ] step 1
 - [ ] step 2
 
-#### Batch 1 · Probe
+#### Batch 1 · Probe        ← exam prep; guided starts with Opening questions, companion with Questions (their mode files)
 ---
 #### ==Q1== <Concept> `L3` `<Source>`
 ...
