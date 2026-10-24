@@ -33,7 +33,7 @@ In Claude Code:
 
 The command is `/learn`. If another skill on your machine is also called `learn`, use the full name `/tutor:learn`.
 
-Update later with `/plugin marketplace update learn-tutor`.
+**Updates.** Run `/plugin marketplace update learn-tutor`, then restart Claude Code. To get updates automatically, turn on auto-update for `learn-tutor` in the `/plugin` menu, under marketplaces; it checks when Claude Code starts. While the repository is private, background updates may need a GitHub token in your environment; the manual command always works with your normal git login.
 
 <details>
 <summary>Install without the plugin system</summary>
@@ -65,7 +65,7 @@ Study/
 
 Only the folder itself is required. The tutor creates `Sessions/` on first use, and works without materials (it then uses the web and asks you for sources), but it is much better with them.
 
-A good editor matters, because everything with math, tables or diagrams happens in the session file, not the terminal. **[Obsidian](https://obsidian.md) is recommended** (free): open the study folder as a vault and questions, math, diagrams and collapsible feedback all render, and the tutor scrolls the file to what's new. Any Markdown editor works; feedback callouts then show as quote blocks.
+A good editor matters, because everything with math, tables or diagrams happens in the session file, not the terminal. **[Obsidian](https://obsidian.md) is recommended** (free): open the study folder as a vault and questions, math, diagrams and collapsible feedback all render, and the tutor scrolls the file to what's new. Any Markdown editor works, but callouts then show as plain quote blocks. That matters most in guided mode, whose answers sit in folded callouts below each pause point: in another editor they're open, so answer each prompt before reading on.
 
 ```bash
 cd ~/Documents/Study
@@ -98,7 +98,7 @@ Press Shift+Tab to switch to "accept edits", so the tutor can write to the sessi
 
 **Guided**, for when there is no good source, the field is new to you, or you want to be walked through. A few ungraded opening questions, then a small map of the material cut into **stretches**. Each stretch is one continuous, motivated piece, like a good textbook section, with two to four pause points at the steps that matter: *Predict* the next move, *Explain* why a step is allowed, or *Do* it yourself. The text after each pause point is folded, so you answer, unfold, and read on at your own pace. The tutor narrates more or hands over more depending on how the pause points go. After the last stretch, a short graded **consolidation** set, then you write the note from memory and the tutor critiques it. Type `probe` instead to find out where you stand on a topic before deciding what to study.
 
-**Exam prep** (`/learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
+**Exam prep** (`/learn <course> exam`, or offered when an exam is within three weeks): the first session reads every file in the course's materials and builds a topic table weighted by what the homework and past exams actually ask. Batches of exam-sized questions go after the most points first. Each question has a `Minutes:` line; fill it in and the tutor compares it with the exam's time per problem. Miss the same kind of problem twice and the next one comes as a step-by-step walkthrough you work through, not another fresh problem. Each session ends with a readiness review per topic and an estimated score range. Ask for a mock exam any time.
 
 **Held-out exams.** Put a practice exam you want to save in `Materials/<Course>/Held Out/`. The tutor uses it only to weight topics and match question style. It never shows or adapts its problems, until you ask to take it as a mock exam.
 
@@ -238,7 +238,7 @@ The behavior is all in the four Markdown files under `skills/learn/`. To change 
 
 ## Status
 
-Generalized from a Claude Code skill that has been used for real course work. The bookkeeping script and hook are covered by tests and the plugin passes `claude plugin validate`. The generalized version has not yet been through full live sessions, so expect to tune wording in `skills/learn/` after the first few.
+Generalized from a Claude Code skill used for real course work, and kept in sync with it. The bookkeeping script and hook are covered by tests, and the plugin passes `claude plugin validate`. Companion and guided mode have each been run end to end on a test source with a simulated learner. Exam prep has only been used in the original version, not yet in this one.
 
 A Gemini CLI version is on the [`gemini` branch](https://github.com/LiamI16/learn-tutor/tree/gemini). It is the older two-mode tutor (learning and exam prep), without companion mode or stretches.
 
