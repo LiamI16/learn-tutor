@@ -33,7 +33,7 @@ In Claude Code:
 
 The command is `/learn`. If another skill on your machine is also called `learn`, use the full name `/tutor:learn`.
 
-**Updates.** Run `/plugin marketplace update learn-tutor`, then restart Claude Code. To get updates automatically, turn on auto-update for `learn-tutor` in the `/plugin` menu, under marketplaces; it checks when Claude Code starts. While the repository is private, background updates may need a GitHub token in your environment; the manual command always works with your normal git login.
+**Updates.** Run `/plugin marketplace update learn-tutor`, then restart Claude Code. To get updates automatically, turn on auto-update for `learn-tutor` in the `/plugin` menu, under marketplaces; it checks when Claude Code starts.
 
 <details>
 <summary>Install without the plugin system</summary>
