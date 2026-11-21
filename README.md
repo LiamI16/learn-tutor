@@ -1,5 +1,7 @@
 # learn-tutor
 
+**HLAIF: human learning from AI feedback.** RLHF in reverse: the model grades, you update.
+
 A tutor for [Claude Code](https://claude.com/claude-code). It finds exactly where your knowledge stops and pushes it outward, for any subject, in plain Markdown files you own.
 
 ```
