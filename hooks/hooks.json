@@ -1,5 +1,5 @@
 {
-  "description": "Keeps Sessions/Progress.md append-only",
+  "description": "Keeps Sessions/Progress.md and Sessions/Verifier Log.md append-only",
   "hooks": {
     "PreToolUse": [
       {

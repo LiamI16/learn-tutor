@@ -50,6 +50,10 @@ def line(date, concept, result, conf, session, note="L3: x", ctx="BIO 101"):
     return " · ".join([date, concept, result, conf, ctx, note, session])
 
 
+def vline(session, items, resolution, note="-"):
+    return " · ".join([session, items, resolution, note])
+
+
 def put(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -187,12 +191,78 @@ class LearnTests(unittest.TestCase):
         self.assertRegex(out, r"materials: .*CHEM 1A/")
         self.assertTrue((ws / "Tutor" / "Progress.md").exists())
 
+    def test_vlog_validates_all_lines_before_writing_any(self):
+        ws = workspace()
+        s = "2026-10-20 BIO 101"
+        good = [vline(s, "Q1, Q2, S1 P1", "agree"), vline(s, "Q3", "key fixed", "key 4 m/s, verifier 2 m/s: diameter as radius")]
+        bad = [
+            vline(s, "Q4", "agreed"),                             # unknown resolution
+            vline(s, "Q4", "verifier wrong"),                     # no note on a disagreement
+            vline(s, "Q4, Q5", "key fixed", "two keys"),          # several items on a non-agree line
+            vline(s, "Q4, , Q5", "agree"),                        # empty item
+            vline("BIO 101", "Q4", "agree"),                      # session without its date
+            " · ".join([s, "Q4", "agree"]),                       # missing field
+            vline(s, "Q4", "dropped", "a · b"),                   # separator inside a field
+            " · ".join([s, "Q4", "agree", ""]),                   # empty note
+        ]
+        for b in bad:
+            code, _, err = learn(ws, "vlog", *good, b)
+            self.assertEqual(code, 1, b)
+            self.assertIn("REJECTED", err)
+        self.assertIn("Verifier Log: 0 valid lines, 0 malformed", learn(ws, "check")[1])
+        code, out, err = learn(ws, "vlog", *good, "- " + vline(s, "S1 P2", "undetermined", "no source found, kept"))
+        self.assertEqual(code, 0, err)
+        self.assertIn("logged 3 line(s)", out)
+        log = (ws / "Sessions" / "Verifier Log.md").read_text(encoding="utf-8")
+        self.assertTrue(log.startswith("---\ncssclasses:\n  - session-progress\n---\n"))
+        self.assertIn("Verifier Log: 3 valid lines, 0 malformed", learn(ws, "check")[1])
+        with open(ws / "Sessions" / "Verifier Log.md", "a", encoding="utf-8") as f:
+            f.write("- " + vline(s, "Q9", "agreed") + "\n")
+        out = learn(ws, "check")[1]
+        self.assertIn("MALFORMED Verifier Log.md", out)
+        self.assertIn("Verifier Log: 3 valid lines, 1 malformed", out)
+
+    def test_verifier_summary_counts_items_and_flags_unlogged_sessions(self):
+        ws = workspace()
+        a, b, old = "2026-10-20 BIO 101", "2026-10-20 CHEM 1A", "2026-10-12 BIO 101"
+        learn(ws, "vlog",
+              vline(old, "Q1, Q2", "agree"),
+              vline(a, "Q1, Q2, Q3, S1 P1", "agree"),             # one line, four items
+              vline(a, "Q4", "key fixed", "sign error in key"),
+              vline(a, "Q5", "dropped", "false premise"),
+              vline(a, "S1 P2", "verifier wrong", "verifier used the wrong section"),
+              vline(b, "Q1", "question reworded", "non-discriminating"),
+              vline(b, "Q2", "undetermined", "kept, source solid"))
+        # a: 4 Q items logged (Q5 was dropped), 4 graded. b: 2 logged, 3 graded. c: graded, nothing logged.
+        learn(ws, "log", *[line("2026-10-20", "Glycolysis", "correct", "high", a) for _ in range(4)],
+              *[line("2026-10-20", "Krebs Cycle", "correct", "high", b) for _ in range(3)],
+              line("2026-10-20", "Glycolysis", "correct", "high", "2026-10-20 BIO 101 Mock"))
+        code, out, err = learn(ws, "verifier")
+        self.assertEqual(code, 0, err)
+        rows = {l[:40].strip(): l[40:].split() for l in out.splitlines() if l[:4] in ("2026", "ALL ")}
+        # verified, agree, key fixed, verifier wrong, reworded, dropped, undetermined, key-fixed %, caught %
+        self.assertEqual(rows[a], ["7", "4", "1", "1", "0", "1", "0", "14.3%", "28.6%"])
+        self.assertEqual(rows[b], ["2", "0", "0", "0", "1", "0", "1", "0.0%", "50.0%"])
+        self.assertEqual(rows["ALL"], ["11", "6", "1", "1", "1", "1", "1", "9.1%", "27.3%"])
+        self.assertNotIn(old, out)                                  # only today's sessions by default
+        self.assertNotIn(f"CHECK {a}:", out)
+        self.assertIn(f"CHECK {b}: 3 graded in Progress, 2 Q items logged", out)
+        self.assertIn("CHECK 2026-10-20 BIO 101 Mock: 1 graded in Progress, 0 Q items logged", out)
+        out = learn(ws, "verifier", "bio 101")[1]
+        self.assertIn(old, out)
+        self.assertIn("matching 'bio 101'", out)
+        self.assertNotIn(b, out)
+
     def test_progress_guard(self):
-        def guard(file_path, raw=None):
-            payload = raw or json.dumps({"cwd": "/w", "tool_name": "Write", "tool_input": {"file_path": file_path}})
+        def guard(file_path, raw=None, tool="Write"):
+            payload = raw or json.dumps({"cwd": "/w", "tool_name": tool, "tool_input": {
+                "file_path": file_path, "old_string": "- old line", "new_string": "- new line"}})
             return subprocess.run([sys.executable, str(GUARD)], input=payload, capture_output=True, text=True).returncode
         self.assertEqual(guard("/w/Sessions/Progress.md"), 2)
         self.assertEqual(guard("Sessions/Progress.md"), 2)
+        self.assertEqual(guard("/w/Sessions/Verifier Log.md"), 2)
+        self.assertEqual(guard("/w/Sessions/Verifier Log.md", tool="Edit"), 2)
+        self.assertEqual(guard("/w/Notes/Verifier Log.md"), 0)
         self.assertEqual(guard("/w/Sessions/2026-10-01 X.md"), 0)
         self.assertEqual(guard("/w/Notes/Progress.md"), 0)
         self.assertEqual(guard("", raw="not json"), 0)

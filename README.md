@@ -12,7 +12,7 @@ A tutor for [Claude Code](https://claude.com/claude-code). It finds exactly wher
 What makes it different from asking a chatbot to explain something:
 
 - **You produce, it grades.** Learning happens when you attempt an answer and get feedback. The tutor asks, you answer in a file, it grades against a key.
-- **Grounded.** Every graded question has a worked answer and a cited source before you see it, and a second agent that never sees the key solves it independently. Disagreements are fixed before the question reaches you.
+- **Grounded.** Every graded question has a worked answer and a cited source before you see it, and a second agent that never sees the key solves it independently. Disagreements are fixed before the question reaches you, and every check is logged, so you can see how often a key was wrong.
 - **Understanding over memorizing.** Guided mode builds each subject from a few facts you can accept without caveats and walks every result as "how could I have discovered this?".
 - **It stays out of your way when you have a good source.** Companion mode answers the step you're stuck on and makes problems only when you ask.
 - **You write your own notes.** The tutor critiques them against the sources. It never writes or edits them.
@@ -47,7 +47,7 @@ cp -R learn-tutor/skills/learn ~/.claude/skills/learn
 cp learn-tutor/agents/verifier.md ~/.claude/agents/verifier.md
 ```
 
-The command is the same, `/learn`. This skips the hook that keeps `Progress.md` append-only (the tutor is told to follow that rule either way).
+The command is the same, `/learn`. This skips the hook that keeps `Progress.md` and `Verifier Log.md` append-only (the tutor is told to follow that rule either way).
 </details>
 
 ## Set up a study folder
@@ -59,7 +59,7 @@ Study/
   Materials/
     BIO 101/            textbook, slides, homework, past exams (PDF or text)
       Held Out/         practice exams you haven't taken yet (see below)
-  Sessions/             created by the tutor: session files, course profiles, Progress.md
+  Sessions/             created by the tutor: session files, course profiles, Progress.md, Verifier Log.md
   ...your own notes, anywhere else, as Markdown
 ```
 
@@ -193,10 +193,24 @@ Then the next turn starts again at Draft. While you are answering, a background 
 | `Sessions/YYYY-MM-DD <name>.md` | one per session: questions, your answers, feedback |
 | `Sessions/<Course>.md` | course profile: exams, terminology, answer style, sections covered, topic table. Edit it freely |
 | `Sessions/Progress.md` | one line per graded question. Append-only |
+| `Sessions/Verifier Log.md` | the verifier's checks, before you see each item. Append-only |
 | `.learn/scratch/` | the tutor's temporary files (answer keys, text extracts). Safe to delete between sessions |
 | `.learn/config.json` | optional settings, below |
 
 `Sessions/` holds data about you; your notes hold knowledge. The tutor keeps them separate: it never edits your notes, and in an Obsidian vault it writes no links or tags in `Sessions/`, so your graph stays clean.
+
+### Verifier log
+
+`Sessions/Verifier Log.md` records every check the verifier makes on an item with a key (graded questions, pause points, explain-back prompts), written before the item reaches you. Agreements share one line per check; anything else gets its own line and a note:
+
+```
+- 2026-10-12 BIO 101 Ch9 · Q1, Q2, Q4, S2 P1 · agree · -
+- 2026-10-12 BIO 101 Ch9 · Q3 · key fixed · arithmetic slip in the key
+```
+
+`session · items · resolution · note`. Resolution is one of `agree`, `key fixed` (the tutor's key was wrong), `verifier wrong` (re-deriving confirmed the key), `question reworded`, `dropped` or `undetermined` (the verifier couldn't settle it).
+
+For the numbers, ask the tutor ("how is the verifier doing?", or "… for BIO 101"). It runs `learn.py verifier`, which prints today's sessions and the overall total, or the sessions matching a name. Two rates: **key fixed** (how often the key itself was wrong) and **caught** (key fixed, reworded or dropped: how often a flawed item was stopped). Both are lower bounds, since the verifier is also a model and can share the tutor's blind spots. It also warns when a session graded more questions than it logged checks for.
 
 ### Settings
 
@@ -227,9 +241,9 @@ skills/learn/SKILL.md           shared core: rules, probe, question format, grou
 skills/learn/companion.md       companion mode
 skills/learn/learning.md        guided mode
 skills/learn/exam.md            exam prep mode
-skills/learn/scripts/learn.py   bookkeeping: session-start state, Progress validation, review status
+skills/learn/scripts/learn.py   bookkeeping: session-start state, Progress and Verifier Log validation, review status
 agents/verifier.md              the blind solver: gets the questions, never the answer keys
-hooks/                          keeps Progress.md append-only
+hooks/                          keeps Progress.md and Verifier Log.md append-only
 extras/obsidian/                optional theme
 tests/                          python3 -m unittest discover tests
 ```
@@ -238,7 +252,7 @@ The behavior is all in the four Markdown files under `skills/learn/`. To change 
 
 ## Status
 
-Generalized from a Claude Code skill used for real course work, and kept in sync with it. The bookkeeping script and hook are covered by tests, and the plugin passes `claude plugin validate`. Companion and guided mode have each been run end to end on a test source with a simulated learner. Exam prep has only been used in the original version, not yet in this one.
+Generalized from a Claude Code skill used for real course work, and kept in sync with it. The tutor has been used for midterm and quiz prep across 4 university courses (400+ graded questions, in the original version), and by a second user through this plugin. The bookkeeping script and hook are covered by tests, and the plugin passes `claude plugin validate`.
 
 An older Gemini CLI version (two modes, learning and exam prep, without companion mode or stretches) is archived at the [`archive/gemini` tag](https://github.com/LiamI16/learn-tutor/tree/archive/gemini). It is no longer maintained.
 

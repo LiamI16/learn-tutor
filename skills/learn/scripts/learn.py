@@ -9,9 +9,11 @@ Usage (run from the workspace folder):
   learn.py start [<course or topic>]         session-start state in one call; no name: list courses and recent sessions
   learn.py log '<line>' ['<line>' ...]       validate, then append graded results to Progress.md (all or nothing)
   learn.py status <course> [--json|--write]  per-topic evidence + review status; --write updates Best level
+  learn.py vlog '<line>' ['<line>' ...]      validate, then append verifier reconciliations to Verifier Log.md
+  learn.py verifier [match]                  Verifier Log counts for today's sessions (or those containing [match]) and overall
   learn.py history <concept or course>       the Progress lines for one concept or context
   learn.py rename <old concept> <new>        rename a concept in existing Progress lines
-  learn.py check                             validate Progress lines; lint Sessions/ for links and tags in wiki-link workspaces
+  learn.py check                             validate Progress and Verifier Log lines; lint Sessions/ for links and tags in wiki-link workspaces
   learn.py show <session file> [heading]     open the session file at the last heading containing [heading]
   learn.py scratch <session file>            create and print the session's scratch folder
   learn.py clean <session file> [--keep]     delete the scratch folder (--keep: leave keys.md and prefetch-*)
@@ -38,6 +40,8 @@ SEP = " · "
 RESULTS = ("correct", "partial", "wrong", "idk")
 CONFS = ("high", "med", "low", "none")
 NOTE_RE = re.compile(r"^L([1-5])( probe| retest)?:")
+RESOLUTIONS = ("agree", "key fixed", "verifier wrong", "question reworded", "dropped", "undetermined")
+CAUGHT = ("key fixed", "question reworded", "dropped")  # a flawed item stopped before the learner saw it
 DATED = re.compile(r"^\d{4}-\d{2}-\d{2} ")
 WEIGHT = {"H": 3, "M": 2, "L": 1}
 EXAM_WINDOW = 21  # days: an exam this close suggests exam prep
@@ -188,6 +192,132 @@ def cmd_log(lines):
     for s in dict.fromkeys(p[2]["session"] for p in parsed):
         if not (SESSIONS / f"{s}.md").exists():
             print(f"note: no session file named '{s}.md'")
+
+
+# ---------------------------------------------------------------- Verifier Log
+
+def vlog_path():
+    return SESSIONS / "Verifier Log.md"
+
+
+def vlog_problems(f):
+    """Why a split Verifier Log line is malformed (empty list = fine)."""
+    if len(f) != 4:
+        return [f"{len(f)} fields, needs 4 (never use ' · ' inside a field)"]
+    errs = []
+    if not DATED.match(f[0]):
+        errs.append("session must be the session file name, starting with its date")
+    items = [i.strip() for i in f[1].split(",")]
+    if not all(items):
+        errs.append("empty item")
+    if f[2] not in RESOLUTIONS:
+        errs.append(f"resolution '{f[2]}' (one of: {', '.join(RESOLUTIONS)})")
+    elif f[2] != "agree":
+        if len(items) > 1:
+            errs.append("only agree lines may list several items")
+        if f[3].strip() in ("", "-"):
+            errs.append("note required unless agree")
+    if not f[3].strip():
+        errs.append("empty note (use -)")
+    return errs
+
+
+def parse_vlog(line):
+    f = re.sub(r"^- ", "", line).strip().split(SEP)
+    errs = vlog_problems(f)
+    if errs:
+        return errs, None
+    return errs, {"session": f[0], "items": [i.strip() for i in f[1].split(",")], "resolution": f[2]}
+
+
+def read_vlog():
+    """Well-formed Verifier Log lines, plus (line number, text, problems) for malformed ones."""
+    rows, bad = [], []
+    if not vlog_path().exists():
+        return rows, bad
+    for n, line in enumerate(read(vlog_path()).split("\n"), 1):
+        if not line.startswith("- "):  # the header has no list items, so every "- " line is a log line
+            continue
+        errs, row = parse_vlog(line)
+        if errs:
+            bad.append((n, line, errs))
+        else:
+            rows.append(row)
+    return rows, bad
+
+
+def warn_bad_vlog(bad):
+    for n, line, errs in bad:
+        print(f"MALFORMED Verifier Log.md line {n} (ignored until fixed): {'; '.join(errs)}\n  {line[:100]}")
+
+
+def cmd_vlog(lines):
+    if not lines:
+        die("vlog needs at least one line: 'session · items · resolution · note'")
+    ensure_sessions()
+    if not vlog_path().exists():
+        write(vlog_path(),
+              "---\ncssclasses:\n  - session-progress\n---\n## Verifier Log\n---\n"
+              "`session · items · resolution · note` — the verifier's checks, append-only. "
+              "Resolution: agree, key fixed, verifier wrong, question reworded, dropped, undetermined.\n\n")
+    parsed = [("- " + re.sub(r"^- ", "", l).strip(),) + parse_vlog(l) for l in lines]
+    failed = [p for p in parsed if p[1]]
+    if failed:
+        for text, errs, _ in failed:
+            print(f"REJECTED: {'; '.join(errs)}\n  {text}", file=sys.stderr)
+        die(f"nothing was logged: fix the {len(failed)} line(s) above and log all {len(lines)} again")
+    body = read(vlog_path())
+    write(vlog_path(), body + ("" if body.endswith("\n") or not body else "\n") + "\n".join(p[0] for p in parsed) + "\n")
+    print(f"logged {len(parsed)} line(s) to {rel(vlog_path())}")
+
+
+def vlog_counts(rows):
+    """Resolutions per session, one entry per item."""
+    by = {}
+    for r in rows:
+        by.setdefault(r["session"], []).extend([r["resolution"]] * len(r["items"]))
+    return by
+
+
+def unlogged(rows, progress, sessions):
+    """(session, graded, logged) where fewer Q items were logged (not dropped) than questions graded:
+    every graded question is verified first, so this usually means a check went unlogged."""
+    out = []
+    for name in sessions:
+        graded = sum(1 for r in progress if r["session"] == name)
+        logged = sum(1 for r in rows if r["session"] == name and r["resolution"] != "dropped"
+                     for i in r["items"] if i.startswith("Q"))
+        if logged < graded:
+            out.append((name, graded, logged))
+    return out
+
+
+def cmd_verifier(match=None):
+    rows, bad = read_vlog()
+    warn_bad_vlog(bad)
+    by = vlog_counts(rows)
+    day = today().isoformat()
+    shown = [s for s in sorted(by) if (match.lower() in s.lower() if match else s.startswith(day))]
+    cols = ("agree", "key fixed", "verifier wrong", "reworded", "dropped", "undetermined")
+    print(f"{'Session':40} verified " + " ".join(f"{c:>{max(len(c), 5)}}" for c in cols) + "  key fixed  caught")
+
+    def row(name, res):
+        counts = " ".join(f"{res.count(r):>{max(len(c), 5)}}" for r, c in zip(RESOLUTIONS, cols))
+        caught = sum(res.count(r) for r in CAUGHT)
+        print(f"{name[:40]:40} {len(res):>8} {counts}  {100 * res.count('key fixed') / len(res):>8.1f}% {100 * caught / len(res):>6.1f}%")
+    for name in shown:
+        row(name, by[name])
+    if match and shown:
+        row(f"matching '{match}'", [x for s in shown for x in by[s]])
+    if not shown:
+        print(f"(no logged sessions {'matching ' + repr(match) if match else 'today'})")
+    if by:
+        row("ALL", [x for res in by.values() for x in res])
+    progress = read_progress()[0]
+    check = set(shown) | ({r["session"] for r in progress if r["session"].startswith(day)} if not match else set())
+    for name, graded, logged in unlogged(rows, progress, sorted(check)):
+        print(f"CHECK {name}: {graded} graded in Progress, {logged} Q items logged "
+              f"(unlogged checks, or items graded without a verifier pass)")
 
 
 def cmd_history(text):
@@ -553,6 +683,9 @@ def cmd_check():
     rows, bad = read_progress()
     warn_bad(bad)
     print(f"Progress: {len(rows)} valid lines, {len(bad)} malformed")
+    vrows, vbad = read_vlog()
+    warn_bad_vlog(vbad)
+    print(f"Verifier Log: {len(vrows)} valid lines, {len(vbad)} malformed")
     if not wiki_root(ROOT) or not SESSIONS.is_dir():
         return
     total = 0
@@ -740,6 +873,10 @@ def main(argv):
         cmd_start(a)
     elif cmd == "log":
         cmd_log(argv[1:])
+    elif cmd == "vlog":
+        cmd_vlog(argv[1:])
+    elif cmd == "verifier":
+        cmd_verifier(" ".join(argv[1:]) or None)
     elif cmd == "status" and a:
         cmd_status(a, as_json, do_write)
     elif cmd == "history" and a:

@@ -88,6 +88,27 @@ Before a batch is shown:
 
 The verifier is a Claude Code subagent (`agents/verifier.md`) with read, search, shell and web tools. It starts with a fresh context, which is what makes the check blind.
 
+### Verifier Log
+
+Disagreements are fixed in the background and only the corrected item is shown, so without a record nobody can tell how often the tutor's own keys were wrong, which is the number that says how much the verifier is worth. `Sessions/Verifier Log.md` keeps that record, append-only like Progress:
+
+```
+- 2026-10-12 BIO 101 Ch9 · Q1, Q2, Q4, S2 P1 · agree · -
+- 2026-10-12 BIO 101 Ch9 · Q3 · key fixed · arithmetic slip in the key
+```
+
+`session · items · resolution · note`, with resolution one of `agree`, `key fixed`, `verifier wrong`, `question reworded`, `dropped`, `undetermined`. `learn.py verifier` prints the counts and two rates: **key fixed** (how often the key itself was wrong) and **caught** (key fixed, reworded or dropped: how often a flawed item was stopped).
+
+The choices, each made to keep a daily metric cheap and trustworthy:
+- **Agreements are logged**, or there is no denominator. They share one line per verifier pass, listing the items, so the common case costs one line per batch.
+- **No counter.** A per-session count would be edited in place, which breaks append-only, and the tutor and a prefetch agent can write at the same moment, so an increment could be lost without anyone noticing. Listing items keeps every write an append, and the script does the counting, which a model gets wrong.
+- **No answer columns.** On agree lines both answers are the same; on the rest a short note ("key used the diameter as the radius") says more. It also keeps keys out of the sessions folder until grading.
+- **A note is required on every non-agree line**, so the tutor's own calls (above all `verifier wrong`, where it overrules the check) can be audited.
+- **Coverage check.** Every graded question was verified first, so a session with fewer logged `Q` items than Progress lines probably skipped a log line; `learn.py verifier` says so. A held-out mock exam, graded without a verifier pass, trips it too.
+- **Only items with a key.** Narrative claims inside a stretch have no single answer to compare, and would swamp the counts.
+
+The rates are lower bounds: a mistake both models make is never logged (see Limits), and answers read straight off the source skip verification.
+
 ## Research basis
 
 | Technique | Evidence | Source |
@@ -120,7 +141,7 @@ Sources without links are cited from memory and still need checking.
 
 ## Changing the tool
 
-- **Bookkeeping lives in `learn.py`; judgment stays with the model.** The script does only what a model gets wrong: validating and aggregating many Progress lines (best level, per-topic evidence, review status) and gathering session-start state. Everything else (reading answers, formatting, readiness) is left to the model. Script parsers of model-written markup proved brittle and were removed. If a *counting* rule changes (the stale threshold, review status), change `learn.py` and `SKILL.md` together, and run `python3 -m unittest discover tests`.
+- **Bookkeeping lives in `learn.py`; judgment stays with the model.** The script does only what a model gets wrong: validating and aggregating many Progress lines (best level, per-topic evidence, review status), counting the Verifier Log, and gathering session-start state. Everything else (reading answers, formatting, readiness) is left to the model. Script parsers of model-written markup proved brittle and were removed. If a *counting* rule changes (the stale threshold, review status), change `learn.py` and `SKILL.md` together, and run `python3 -m unittest discover tests`.
 - **Behavior:** edit `SKILL.md` for anything the modes share, `companion.md`, `learning.md` or `exam.md` for one mode.
 - **What was deliberately left out**, and is worth revisiting only if a real problem shows up:
   - separate `/review` and `/exam` commands (a mock exam is just a request in a session)
@@ -139,6 +160,6 @@ The tutor began as a skill written for one person's Obsidian notes and STEM cour
 | One fixed folder layout for notes, courses and materials | Any folder. A course is anything with a profile; materials are found by folder name under `Materials/` or configured roots |
 | Notes follow one fixed template | Notes follow the workspace's own conventions if it states any; a learner with no notes folder writes the note in the session file |
 | Obsidian required | Obsidian recommended; any Markdown editor works |
-| Shell one-liners for the Progress file (`printf >>`, `sed`, `find`) | `learn.py log` validates before appending, and the other commands replace the rest, so it also works on Windows |
+| Shell one-liners for the Progress file and Verifier Log (`printf >>`, `sed`, `find`) | `learn.py log` and `learn.py vlog` validate before appending, and the other commands replace the rest, so it also works on Windows |
 | Temp files in `/tmp` | `.learn/scratch/` inside the workspace |
 | STEM examples and a "lab material" question | Subject-neutral wording, rubric-keyed open-ended questions, readings in the inventory |
